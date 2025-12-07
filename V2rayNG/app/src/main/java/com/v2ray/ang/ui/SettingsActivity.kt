@@ -1,9 +1,9 @@
 package com.v2ray.ang.ui
 
-import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.View
+import android.widget.Button
 import androidx.activity.viewModels
 import androidx.preference.CheckBoxPreference
 import androidx.preference.EditTextPreference
@@ -31,6 +31,8 @@ class SettingsActivity : BaseActivity() {
         setContentView(R.layout.activity_settings)
 
         title = getString(R.string.title_settings)
+
+        findViewById<Button?>(R.id.btn_back_settings)?.setOnClickListener { finish() }
 
         settingsViewModel.startListenPreferenceChange()
     }

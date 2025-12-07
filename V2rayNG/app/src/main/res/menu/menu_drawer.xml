@@ -24,6 +24,14 @@
             android:id="@+id/settings"
             android:icon="@drawable/ic_settings_24dp"
             android:title="@string/title_settings" />
+        <item
+            android:id="@+id/add_config"
+            android:icon="@drawable/ic_add_24dp"
+            android:title="@string/menu_item_add_config" />
+        <item
+            android:id="@+id/more_actions"
+            android:icon="@drawable/ic_more_vert_24dp"
+            android:title="@string/more_actions" />
     </group>
 
     <group android:id="@+id/group_id2">

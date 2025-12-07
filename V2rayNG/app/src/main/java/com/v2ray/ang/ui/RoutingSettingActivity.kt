@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.PopupMenu
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
@@ -69,6 +70,34 @@ class RoutingSettingActivity : BaseActivity() {
         binding.layoutDomainStrategy.setOnClickListener {
             setDomainStrategy()
         }
+
+        binding.btnBackRouting.setOnClickListener { finish() }
+        binding.btnAddRule.setOnClickListener {
+            startActivity(Intent(this, RoutingEditActivity::class.java))
+        }
+        binding.btnMoreRouting.setOnClickListener { anchor ->
+            PopupMenu(this, anchor).apply {
+                menuInflater.inflate(R.menu.menu_routing_setting, menu)
+                setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        R.id.import_predefined_rulesets -> {
+                            importPredefined(); true
+                        }
+                        R.id.import_rulesets_from_clipboard -> {
+                            importFromClipboard(); true
+                        }
+                        R.id.import_rulesets_from_qrcode -> {
+                            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA); true
+                        }
+                        R.id.export_rulesets_to_clipboard -> {
+                            export2Clipboard(); true
+                        }
+                        else -> false
+                    }
+                }
+                show()
+            }
+        }
     }
 
     override fun onResume() {
@@ -77,18 +106,10 @@ class RoutingSettingActivity : BaseActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_routing_setting, menu)
-        return super.onCreateOptionsMenu(menu)
+        return false
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.add_rule -> startActivity(Intent(this, RoutingEditActivity::class.java)).let { true }
-        R.id.import_predefined_rulesets -> importPredefined().let { true }
-        R.id.import_rulesets_from_clipboard -> importFromClipboard().let { true }
-        R.id.import_rulesets_from_qrcode -> requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA).let { true }
-        R.id.export_rulesets_to_clipboard -> export2Clipboard().let { true }
-        else -> super.onOptionsItemSelected(item)
-    }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = super.onOptionsItemSelected(item)
 
     private fun getDomainStrategy(): String {
         return MmkvManager.decodeSettingsString(AppConfig.PREF_ROUTING_DOMAIN_STRATEGY) ?: routing_domain_strategy.first()

@@ -17,6 +17,50 @@
         app:indicatorColor="@color/color_fab_active" />
 
     <LinearLayout
+        android:id="@+id/perapp_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/padding_spacing_dp8"
+        android:paddingEnd="@dimen/padding_spacing_dp8"
+        android:paddingTop="@dimen/padding_spacing_dp8"
+        android:paddingBottom="@dimen/padding_spacing_dp8">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_back_perapp"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/colorPrimary"
+            android:text="@string/navigation_drawer_close"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            app:icon="@android:drawable/ic_media_previous"
+            app:iconGravity="textStart" />
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/search_inline"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/padding_spacing_dp8"
+            android:layout_marginEnd="@dimen/padding_spacing_dp8"
+            android:layout_weight="1"
+            android:iconifiedByDefault="false"
+            android:queryHint="@string/menu_item_search" />
+
+        <ImageButton
+            android:id="@+id/btn_more_perapp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/more_actions"
+            android:padding="@dimen/padding_spacing_dp8"
+            android:src="@drawable/ic_more_vert_24dp" />
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/header_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

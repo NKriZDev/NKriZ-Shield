@@ -13,12 +13,13 @@
 
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="0dp"
+            android:visibility="gone">
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize" />
+                android:layout_height="0dp" />
 
         </com.google.android.material.appbar.AppBarLayout>
 
@@ -44,71 +45,134 @@
                         android:visibility="invisible"
                         app:indicatorColor="@color/color_fab_active" />
 
-                    <com.google.android.material.tabs.TabLayout
-                        android:id="@+id/tab_group"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_open_server_list"
+                        style="@style/Widget.MaterialComponents.Button"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:padding="@dimen/padding_spacing_dp8"
-                        app:tabIndicatorFullWidth="false"
-                        app:tabMode="scrollable"
-                        app:tabTextAppearance="@style/TabLayoutTextStyle" />
+                        android:layout_margin="@dimen/padding_spacing_dp8"
+                        android:backgroundTint="@color/colorPrimary"
+                        android:text="@string/open_server_list"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/white"
+                        android:visibility="visible" />
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/recycler_view"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_advanced_settings_main"
+                        style="@style/Widget.MaterialComponents.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/padding_spacing_dp8"
+                        android:layout_marginEnd="@dimen/padding_spacing_dp8"
+                        android:backgroundTint="@color/colorPrimary"
+                        android:text="@string/advanced_settings"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/white" />
+
+                    <LinearLayout
+                        android:id="@+id/server_list_container"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:nextFocusRight="@+id/fab"
-                        android:scrollbars="vertical" />
+                        android:orientation="vertical"
+                        android:visibility="gone"
+                        android:background="?attr/colorSurface"
+                        android:elevation="4dp"
+                        android:padding="@dimen/padding_spacing_dp8">
 
-                    <LinearLayout
-                        android:id="@+id/layout_test"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/view_height_dp64"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:nextFocusLeft="@+id/recycler_view"
-                        android:nextFocusRight="@+id/fab"
-                        android:orientation="vertical">
+                        <com.google.android.material.tabs.TabLayout
+                            android:id="@+id/tab_group"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="0dp"
+                            android:visibility="gone"
+                            android:background="@android:color/transparent"
+                            app:tabIndicatorFullWidth="false"
+                            app:tabMode="scrollable"
+                            app:tabTextAppearance="@style/TabLayoutTextStyle" />
 
-                        <View
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_close_server_list"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="1dp"
-                            android:background="@color/divider_color_light" />
+                            android:layout_height="wrap_content"
+                            android:backgroundTint="@color/colorPrimary"
+                            android:text="@string/close_server_list"
+                            android:textAllCaps="false"
+                            android:textColor="@android:color/white" />
 
-                        <TextView
-                            android:id="@+id/tv_test_state"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:gravity="start|center"
-                            android:maxLines="2"
-                            android:minLines="1"
-                            android:paddingStart="@dimen/padding_spacing_dp16"
-                            android:text="@string/connection_test_pending"
-                            android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+                        <androidx.appcompat.widget.SearchView
+                            android:id="@+id/search_view_server"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:iconifiedByDefault="false"
+                            android:queryHint="@string/menu_item_search" />
 
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/recycler_view"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:scrollbars="vertical" />
                     </LinearLayout>
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:foregroundGravity="center"
+                        android:paddingBottom="@dimen/padding_spacing_dp8">
+
+                        <LinearLayout
+                            android:id="@+id/connect_block"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_connect"
+                                style="@style/Widget.MaterialComponents.Button"
+                                android:layout_width="200dp"
+                                android:layout_height="200dp"
+                                android:backgroundTint="@color/colorPrimary"
+                                android:textColor="@android:color/white"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:text="@string/action_connect"
+                                android:textAllCaps="false"
+                                android:textSize="22sp"
+                                app:cornerRadius="100dp" />
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/layout_test"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/padding_spacing_dp16"
+                                android:padding="@dimen/padding_spacing_dp16"
+                                app:cardBackgroundColor="@android:color/white"
+                                app:cardElevation="2dp"
+                                app:cardCornerRadius="12dp"
+                                app:strokeColor="@color/colorAccent"
+                                app:strokeWidth="1dp">
+
+                                <TextView
+                                    android:id="@+id/tv_test_state"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:maxLines="2"
+                                    android:minLines="1"
+                                    android:paddingStart="@dimen/padding_spacing_dp12"
+                                    android:paddingEnd="@dimen/padding_spacing_dp12"
+                                    android:text="@string/connection_test_pending"
+                                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                                    android:textColor="@android:color/black" />
+                            </com.google.android.material.card.MaterialCardView>
+                        </LinearLayout>
+                    </FrameLayout>
                 </LinearLayout>
-
-                <FrameLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom|end"
-                    android:layout_marginEnd="@dimen/padding_spacing_dp16">
-
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:id="@+id/fab"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|end"
-                        android:layout_marginBottom="@dimen/view_height_dp36"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:nextFocusLeft="@+id/layout_test"
-                        android:src="@drawable/ic_play_24dp"
-                        app:layout_anchorGravity="bottom|right|end" />
-
-                </FrameLayout>
             </androidx.coordinatorlayout.widget.CoordinatorLayout>
         </RelativeLayout>
     </LinearLayout>
@@ -118,6 +182,7 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
+        android:visibility="gone"
         app:headerLayout="@layout/nav_header"
         app:itemIconTint="@color/colorAccent"
         app:menu="@menu/menu_drawer">

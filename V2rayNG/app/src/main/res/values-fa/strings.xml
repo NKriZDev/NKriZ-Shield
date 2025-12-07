@@ -111,6 +111,14 @@
     <string name="server_lab_xhttp_mode">حالت XHTTP</string>
     <string name="server_lab_xhttp_extra">خام JSON XHTTP Extra، قالب: { XHTTPObject }</string>
 
+    <string name="open_server_list">باز کردن فهرست سرورها</string>
+    <string name="close_server_list">بازگشت به صفحه اصلی</string>
+    <string name="action_connect">اتصال</string>
+    <string name="action_disconnect">قطع اتصال</string>
+    <string name="advanced_settings">تنظیمات پیشرفته</string>
+    <string name="more_actions">عملیات بیشتر</string>
+    <string name="menu_item_add_manually">افزودن دستی</string>
+
     <!-- UserAssetActivity -->
     <string name="toast_asset_copy_failed">کپی فایل انجام نشد، لطفا از برنامه مدیریت فایل استفاده کنید</string>
     <string name="menu_item_add_file">افزودن فایل ‌ها</string>
@@ -313,7 +321,7 @@
     <string name="connection_test_pending">اتصال را بررسی کنید</string>
     <string name="connection_test_testing">در حال آزمایش...</string>
     <string name="connection_test_testing_count">تست کردن %d کانفیگ…</string>
-    <string name="connection_test_available">موفقیت: اتصال %dms طول کشید</string>
+    <string name="connection_test_available">%dms</string>
     <string name="connection_test_error">اتصال به اینترنت شناسایی نشد: %s</string>
     <string name="connection_test_fail">اینترنت در دسترس نیست</string>
     <string name="connection_test_error_status_code">کد خطا: #%d</string>

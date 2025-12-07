@@ -13,6 +13,7 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -127,23 +128,21 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        title = getString(R.string.title_server)
-        setSupportActionBar(binding.toolbar)
+        title = getString(R.string.app_name)
+        // Hide/disable toolbar/nav UI
+        binding.toolbar.visibility = View.GONE
+        binding.navView.visibility = View.GONE
 
-        binding.fab.setOnClickListener {
-            if (mainViewModel.isRunning.value == true) {
-                V2RayServiceManager.stopVService(this)
-            } else if ((MmkvManager.decodeSettingsString(AppConfig.PREF_MODE) ?: VPN) == VPN) {
-                val intent = VpnService.prepare(this)
-                if (intent == null) {
-                    startV2Ray()
-                } else {
-                    requestVpnPermission.launch(intent)
-                }
-            } else {
-                startV2Ray()
-            }
-        }
+        // Ensure server list UI stays hidden on the main tab
+        // Server list UI removed from main; ensure hidden
+        binding.serverListContainer.isVisible = false
+        binding.tabGroup.isVisible = false
+
+        binding.btnOpenServerList.setOnClickListener { showServerList() }
+        binding.btnCloseServerList.setOnClickListener { hideServerList() }
+        binding.btnAdvancedSettingsMain.setOnClickListener { openDrawer() }
+
+        binding.btnConnect.setOnClickListener { handleConnectClick() }
         binding.layoutTest.setOnClickListener {
             if (mainViewModel.isRunning.value == true) {
                 setTestState(getString(R.string.connection_test_testing))
@@ -165,11 +164,6 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         mItemTouchHelper = ItemTouchHelper(SimpleItemTouchHelperCallback(adapter))
         mItemTouchHelper?.attachToRecyclerView(binding.recyclerView)
 
-        val toggle = ActionBarDrawerToggle(
-            this, binding.drawerLayout, binding.toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
-        )
-        binding.drawerLayout.addDrawerListener(toggle)
-        toggle.syncState()
         binding.navView.setNavigationItemSelectedListener(this)
 
         initGroupTab()
@@ -194,6 +188,130 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 }
             }
         })
+
+        binding.searchViewServer.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                mainViewModel.filterConfig(query.orEmpty())
+                return false
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                mainViewModel.filterConfig(newText.orEmpty())
+                return false
+            }
+        })
+    }
+
+    private fun showServerList() {
+        binding.serverListContainer.isVisible = true
+        binding.btnOpenServerList.isVisible = false
+        binding.tabGroup.isVisible = true
+        binding.connectBlock.isVisible = false
+        binding.layoutTest.isVisible = false
+        binding.btnCloseServerList.isVisible = true
+        binding.btnAdvancedSettingsMain.isVisible = false
+    }
+
+    private fun hideServerList() {
+        binding.serverListContainer.isVisible = false
+        binding.btnOpenServerList.isVisible = true
+        binding.tabGroup.isVisible = false
+        binding.connectBlock.isVisible = true
+        binding.layoutTest.isVisible = true
+        binding.btnCloseServerList.isVisible = false
+        binding.btnAdvancedSettingsMain.isVisible = true
+    }
+
+    private fun openDrawer() {
+        binding.navView.visibility = View.VISIBLE
+        binding.drawerLayout.openDrawer(GravityCompat.START)
+    }
+
+    private fun showAddConfigDialog() {
+        val options = listOf(
+            Pair(getString(R.string.menu_item_import_config_qrcode)) { importQRcode() },
+            Pair(getString(R.string.menu_item_import_config_clipboard)) { importClipboard() },
+            Pair(getString(R.string.menu_item_import_config_local)) { importConfigLocal() },
+            Pair(getString(R.string.menu_item_import_config_manually_vmess)) { importManually(EConfigType.VMESS.value) },
+            Pair(getString(R.string.menu_item_import_config_manually_vless)) { importManually(EConfigType.VLESS.value) },
+            Pair(getString(R.string.menu_item_import_config_manually_ss)) { importManually(EConfigType.SHADOWSOCKS.value) },
+            Pair(getString(R.string.menu_item_import_config_manually_socks)) { importManually(EConfigType.SOCKS.value) },
+            Pair(getString(R.string.menu_item_import_config_manually_http)) { importManually(EConfigType.HTTP.value) },
+            Pair(getString(R.string.menu_item_import_config_manually_trojan)) { importManually(EConfigType.TROJAN.value) },
+            Pair(getString(R.string.menu_item_import_config_manually_wireguard)) { importManually(EConfigType.WIREGUARD.value) },
+            Pair(getString(R.string.menu_item_import_config_manually_hysteria2)) { importManually(EConfigType.HYSTERIA2.value) }
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.menu_item_add_config)
+            .setItems(options.map { it.first }.toTypedArray()) { _, which ->
+                options[which].second.invoke()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showMoreActionsDialog() {
+        val actions = listOf(
+            Pair(getString(R.string.title_service_restart)) { restartV2Ray() },
+            Pair(getString(R.string.title_ping_all_server)) { mainViewModel.testAllTcping() },
+            Pair(getString(R.string.title_real_ping_all_server)) { mainViewModel.testAllRealPing() },
+            Pair(getString(R.string.title_export_all)) { exportAll() },
+            Pair(getString(R.string.title_del_all_config)) { delAllConfig() },
+            Pair(getString(R.string.title_del_invalid_config)) { delInvalidConfig() },
+            Pair(getString(R.string.title_create_intelligent_selection_all_server)) {
+                if (MmkvManager.decodeSettingsString(AppConfig.PREF_OUTBOUND_DOMAIN_RESOLVE_METHOD, "1") != "0") {
+                    toast(getString(R.string.pre_resolving_domain))
+                }
+                mainViewModel.createIntelligentSelectionAll()
+            },
+            Pair(getString(R.string.title_sort_by_test_results)) { sortByTestResults() },
+            Pair(getString(R.string.title_sub_update)) { importConfigViaSub() }
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.more_actions)
+            .setItems(actions.map { it.first }.toTypedArray()) { _, which ->
+                actions[which].second.invoke()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showAddManuallyDialog() {
+        // no-op, manual items now live inside add config dialog
+    }
+
+    private fun handleConnectClick() {
+        if (mainViewModel.isRunning.value == true) {
+            V2RayServiceManager.stopVService(this)
+        } else if ((MmkvManager.decodeSettingsString(AppConfig.PREF_MODE) ?: VPN) == VPN) {
+            val intent = VpnService.prepare(this)
+            if (intent == null) {
+                startV2Ray()
+            } else {
+                requestVpnPermission.launch(intent)
+            }
+        } else {
+            startV2Ray()
+        }
+    }
+
+    private fun updateConnectButton(isRunning: Boolean) {
+        adapter.isRunning = isRunning
+        if (isRunning) {
+            binding.btnConnect.text = getString(R.string.action_disconnect)
+            binding.btnConnect.backgroundTintList =
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_active))
+            setTestState(getString(R.string.connection_test_testing))
+            mainViewModel.testCurrentServerRealPing()
+            binding.layoutTest.isFocusable = true
+        } else {
+            binding.btnConnect.text = getString(R.string.action_connect)
+            binding.btnConnect.backgroundTintList =
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_inactive))
+            setTestState(getString(R.string.connection_not_connected))
+            binding.layoutTest.isFocusable = false
+            binding.tabGroup.isVisible = false
+        }
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -206,20 +324,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             }
         }
         mainViewModel.updateTestResultAction.observe(this) { setTestState(it) }
-        mainViewModel.isRunning.observe(this) { isRunning ->
-            adapter.isRunning = isRunning
-            if (isRunning) {
-                binding.fab.setImageResource(R.drawable.ic_stop_24dp)
-                binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_active))
-                setTestState(getString(R.string.connection_connected))
-                binding.layoutTest.isFocusable = true
-            } else {
-                binding.fab.setImageResource(R.drawable.ic_play_24dp)
-                binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_inactive))
-                setTestState(getString(R.string.connection_not_connected))
-                binding.layoutTest.isFocusable = false
-            }
-        }
+        mainViewModel.isRunning.observe(this) { isRunning -> updateConnectButton(isRunning) }
         mainViewModel.startListenBroadcast()
         mainViewModel.initAssets(assets)
     }
@@ -242,7 +347,6 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     private fun initGroupTab() {
         binding.tabGroup.removeOnTabSelectedListener(tabGroupListener)
         binding.tabGroup.removeAllTabs()
-        binding.tabGroup.isVisible = false
 
         val (listId, listRemarks) = mainViewModel.getSubscriptions(this)
         if (listId == null || listRemarks == null) {
@@ -259,7 +363,6 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             listId.indexOf(mainViewModel.subscriptionId).takeIf { it >= 0 } ?: (listId.count() - 1)
         binding.tabGroup.selectTab(binding.tabGroup.getTabAt(selectIndex))
         binding.tabGroup.addOnTabSelectedListener(tabGroupListener)
-        binding.tabGroup.isVisible = true
     }
 
     private fun startV2Ray() {
@@ -690,6 +793,8 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 Intent(this, SettingsActivity::class.java)
                     .putExtra("isRunning", mainViewModel.isRunning.value == true)
             )
+            R.id.add_config -> showAddConfigDialog()
+            R.id.more_actions -> showMoreActionsDialog()
 
             R.id.promotion -> Utils.openUri(this, "${Utils.decode(AppConfig.APP_PROMOTION_URL)}?t=${System.currentTimeMillis()}")
             R.id.logcat -> startActivity(Intent(this, LogcatActivity::class.java))

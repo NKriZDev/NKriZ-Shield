@@ -40,6 +40,10 @@ class SubSettingActivity : BaseActivity() {
 
         mItemTouchHelper = ItemTouchHelper(SimpleItemTouchHelperCallback(adapter))
         mItemTouchHelper?.attachToRecyclerView(binding.recyclerView)
+
+        binding.btnBackSub.setOnClickListener { finish() }
+        binding.btnAddSub.setOnClickListener { addSubscription() }
+        binding.btnReloadSub.setOnClickListener { updateSubscriptions() }
     }
 
     override fun onResume() {
@@ -54,26 +58,12 @@ class SubSettingActivity : BaseActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
         R.id.add_config -> {
-            startActivity(Intent(this, SubEditActivity::class.java))
+            addSubscription()
             true
         }
 
         R.id.sub_update -> {
-            binding.pbWaiting.show()
-
-            lifecycleScope.launch(Dispatchers.IO) {
-                val count = AngConfigManager.updateConfigViaSubAll()
-                delay(500L)
-                launch(Dispatchers.Main) {
-                    if (count > 0) {
-                        toastSuccess(R.string.toast_success)
-                    } else {
-                        toastError(R.string.toast_failure)
-                    }
-                    binding.pbWaiting.hide()
-                }
-            }
-
+            updateSubscriptions()
             true
         }
 
@@ -85,5 +75,26 @@ class SubSettingActivity : BaseActivity() {
     fun refreshData() {
         subscriptions = MmkvManager.decodeSubscriptions()
         adapter.notifyDataSetChanged()
+    }
+
+    private fun addSubscription() {
+        startActivity(Intent(this, SubEditActivity::class.java))
+    }
+
+    private fun updateSubscriptions() {
+        binding.pbWaiting.show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val count = AngConfigManager.updateConfigViaSubAll()
+            delay(500L)
+            launch(Dispatchers.Main) {
+                if (count > 0) {
+                    toastSuccess(R.string.toast_success)
+                } else {
+                    toastError(R.string.toast_failure)
+                }
+                binding.pbWaiting.hide()
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">v2rayNG</string>
+    <string name="app_name" translatable="false">NKriZ Shield</string>
     <string name="app_widget_name">Switch</string>
     <string name="app_tile_name">Switch</string>
     <string name="app_tile_first_use">First use of this feature, please use the app to add server</string>
@@ -111,6 +111,14 @@
     <string name="server_lab_bandwidth_up">Bandwidth up (Supported units: k/m/g/t)</string>
     <string name="server_lab_xhttp_mode">XHTTP Mode</string>
     <string name="server_lab_xhttp_extra">XHTTP Extra raw JSON, format: { XHTTPObject }</string>
+
+    <string name="open_server_list">Open server list</string>
+    <string name="close_server_list">Back to main</string>
+    <string name="action_connect">Connect</string>
+    <string name="action_disconnect">Disconnect</string>
+    <string name="advanced_settings">Advanced Settings</string>
+    <string name="more_actions">More actions</string>
+    <string name="menu_item_add_manually">Add manually</string>
 
     <!-- UserAssetActivity -->
     <string name="toast_asset_copy_failed">File copy failed, please use File Manager</string>
@@ -319,7 +327,7 @@
     <string name="connection_test_pending">Check Connectivity</string>
     <string name="connection_test_testing">Testing…</string>
     <string name="connection_test_testing_count">Testing %d configurations…</string>
-    <string name="connection_test_available">Success: Connection took %dms</string>
+    <string name="connection_test_available">%dms</string>
     <string name="connection_test_error">Fail to detect internet connection: %s</string>
     <string name="connection_test_fail">Internet Unavailable</string>
     <string name="connection_test_error_status_code">Error code: #%d</string>

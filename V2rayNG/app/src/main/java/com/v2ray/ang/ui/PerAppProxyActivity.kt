@@ -6,6 +6,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
@@ -43,6 +44,47 @@ class PerAppProxyActivity : BaseActivity() {
         addCustomDividerToRecyclerView(binding.recyclerView, this, R.drawable.custom_divider)
 
         initList()
+
+        binding.btnBackPerapp.setOnClickListener { finish() }
+
+        binding.searchInline.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean = false
+            override fun onQueryTextChange(newText: String?): Boolean {
+                filterProxyApp(newText.orEmpty())
+                return false
+            }
+        })
+
+        binding.btnMorePerapp.setOnClickListener { v ->
+            PopupMenu(this, v).apply {
+                menuInflater.inflate(R.menu.menu_bypass_list, menu)
+                setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        R.id.select_all -> {
+                            selectAllApp()
+                            allowPerAppProxy()
+                            true
+                        }
+                        R.id.select_proxy_app -> {
+                            selectProxyAppAuto()
+                            allowPerAppProxy()
+                            true
+                        }
+                        R.id.import_proxy_app -> {
+                            importProxyApp()
+                            allowPerAppProxy()
+                            true
+                        }
+                        R.id.export_proxy_app -> {
+                            exportProxyApp()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                show()
+            }
+        }
 
         binding.switchPerAppProxy.setOnCheckedChangeListener { _, isChecked ->
             MmkvManager.encodeSettings(AppConfig.PREF_PER_APP_PROXY, isChecked)
@@ -111,50 +153,12 @@ class PerAppProxyActivity : BaseActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_bypass_list, menu)
-
-        val searchItem = menu.findItem(R.id.search_view)
-        if (searchItem != null) {
-            val searchView = searchItem.actionView as SearchView
-            searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String?): Boolean = false
-
-                override fun onQueryTextChange(newText: String?): Boolean {
-                    filterProxyApp(newText.orEmpty())
-                    return false
-                }
-            })
-        }
-
-        return super.onCreateOptionsMenu(menu)
+        return false
     }
 
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.select_all -> {
-            selectAllApp()
-            allowPerAppProxy()
-            true
-        }
-
-        R.id.select_proxy_app -> {
-            selectProxyAppAuto()
-            allowPerAppProxy()
-            true
-        }
-
-        R.id.import_proxy_app -> {
-            importProxyApp()
-            allowPerAppProxy()
-            true
-        }
-
-        R.id.export_proxy_app -> {
-            exportProxyApp()
-            true
-        }
-
         else -> super.onOptionsItemSelected(item)
     }
 
