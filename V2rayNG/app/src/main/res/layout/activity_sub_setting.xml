@@ -35,10 +35,9 @@
             android:backgroundTint="@color/colorPrimary"
             android:paddingStart="@dimen/padding_spacing_dp8"
             android:paddingEnd="@dimen/padding_spacing_dp8"
-            android:text="@string/navigation_drawer_close"
-            android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            app:icon="@android:drawable/ic_media_previous"
+            android:text=""
+            app:icon="@drawable/ic_arrow_back_24dp"
+            app:iconTint="@color/colorAccent"
             app:iconGravity="textStart" />
 
         <com.google.android.material.button.MaterialButton

@@ -12,10 +12,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.PopupMenu
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -95,6 +97,16 @@ class UserAssetActivity : BaseActivity() {
         binding.layoutGeoFilesSources.setOnClickListener {
             setGeoFilesSources()
         }
+
+        binding.btnBackAsset.setOnClickListener { finish() }
+
+        binding.btnAssetActions.setOnClickListener { view ->
+            showAssetOptionsPopup(view)
+        }
+
+        binding.btnAssetDownload.setOnClickListener {
+            downloadGeoFiles()
+        }
     }
 
     override fun onResume() {
@@ -114,6 +126,29 @@ class UserAssetActivity : BaseActivity() {
         R.id.add_qrcode -> importAssetFromQRcode().let { true }
         R.id.download_file -> downloadGeoFiles().let { true }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    private fun showAssetOptionsPopup(anchor: View) {
+        PopupMenu(this, anchor).apply {
+            menu.add(Menu.NONE, R.id.add_file, Menu.NONE, getString(R.string.menu_item_add_file))
+            menu.add(Menu.NONE, R.id.add_url, Menu.NONE, getString(R.string.menu_item_add_url))
+            menu.add(Menu.NONE, R.id.add_qrcode, Menu.NONE, getString(R.string.menu_item_scan_qrcode))
+            setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    R.id.add_file -> {
+                        showFileChooser()
+                        true
+                    }
+                    R.id.add_url -> {
+                        startActivity(Intent(this@UserAssetActivity, UserAssetUrlActivity::class.java))
+                        true
+                    }
+                    R.id.add_qrcode -> importAssetFromQRcode()
+                    else -> false
+                }
+            }
+            show()
+        }
     }
 
     private fun getGeoFilesSources(): String {

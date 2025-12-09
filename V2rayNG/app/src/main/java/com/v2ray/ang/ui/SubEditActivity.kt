@@ -30,6 +30,9 @@ class SubEditActivity : BaseActivity() {
         setContentView(binding.root)
         title = getString(R.string.title_sub_setting)
 
+        binding.btnBackSubEdit.setOnClickListener { finish() }
+        binding.btnSaveSubEdit.setOnClickListener { saveServer() }
+
         val subItem = MmkvManager.decodeSubscription(editSubId)
         if (subItem != null) {
             bindingServer(subItem)

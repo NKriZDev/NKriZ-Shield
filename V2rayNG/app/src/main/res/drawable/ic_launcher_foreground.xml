@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Centered, sharp V with outward branching tips -->
+    <path
+        android:fillColor="#F97910"
+        android:pathData="M16,26 L38,26 L54,92 L70,26 L92,26 L76,18 L54,68 L32,18 Z" />
+
+    <!-- Subtle inner highlight to emphasize blade edges -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillAlpha="0.14"
+        android:pathData="M26,28 L42,28 L54,82 L66,28 L82,28 L72,22 L54,60 L36,22 Z" />
+</vector>

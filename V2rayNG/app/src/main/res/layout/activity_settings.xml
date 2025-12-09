@@ -25,10 +25,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:backgroundTint="@color/colorPrimary"
-            android:text="@string/navigation_drawer_close"
-            android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            app:icon="@android:drawable/ic_media_previous"
+            android:text=""
+            app:icon="@drawable/ic_arrow_back_24dp"
+            app:iconTint="@color/colorAccent"
             app:iconGravity="textStart" />
     </LinearLayout>
 

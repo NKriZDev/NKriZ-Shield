@@ -26,6 +26,58 @@
             android:orientation="vertical">
 
             <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/padding_spacing_dp16"
+                android:paddingTop="@dimen/padding_spacing_dp12"
+                android:paddingEnd="@dimen/padding_spacing_dp16"
+                android:paddingBottom="@dimen/padding_spacing_dp8">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_back_asset"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:text=""
+                    app:icon="@drawable/ic_arrow_back_24dp"
+                    app:iconTint="@color/colorAccent"
+                    app:iconGravity="textStart" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1px"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_asset_actions"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/padding_spacing_dp8"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:text="@string/menu_item_add_asset"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    app:icon="@drawable/ic_add_24dp"
+                    app:iconGravity="textStart" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_asset_download"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:text="@string/menu_item_download_file"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    app:icon="@drawable/ic_cloud_download_24dp"
+                    app:iconGravity="textStart" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/layout_geo_files_sources"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
