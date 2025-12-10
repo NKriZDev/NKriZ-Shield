@@ -69,6 +69,22 @@
                         android:textAllCaps="false"
                         android:textColor="@android:color/white" />
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_reload_subscription"
+                        style="@style/Widget.MaterialComponents.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/padding_spacing_dp8"
+                        android:layout_marginEnd="@dimen/padding_spacing_dp8"
+                        android:layout_marginTop="@dimen/padding_spacing_dp4"
+                        android:backgroundTint="@color/colorPrimary"
+                        android:icon="@drawable/ic_check_update_24dp"
+                        app:iconGravity="textStart"
+                        app:iconPadding="@dimen/padding_spacing_dp4"
+                        android:text="@string/title_sub_update"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/white" />
+
                     <LinearLayout
                         android:id="@+id/server_list_container"
                         android:layout_width="match_parent"

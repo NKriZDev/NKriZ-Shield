@@ -525,7 +525,7 @@ object AngConfigManager {
     private const val SERVER_PUBKEY_B64 = "U9cnZKzT5AiGYDlHklY0JjNFY2JfsSurHJdAD/MSkJE="
     private const val SERVER_TOKEN = "2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a"
     private const val SERVER_SUB_URL = "https://update.nkriz.ir/configs"
-    private const val SERVER_SUB_ID = "NK_SUB"
+    const val SERVER_SUB_ID = "NK_SUB"
     private const val SERVER_SUB_REMARK = "NKriZ.ir"
 
     private fun fetchSubscriptionContent(url: String, userAgent: String?, httpPort: Int): String {

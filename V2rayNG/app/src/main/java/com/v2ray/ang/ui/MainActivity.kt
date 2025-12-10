@@ -141,6 +141,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         binding.btnOpenServerList.setOnClickListener { showServerList() }
         binding.btnCloseServerList.setOnClickListener { hideServerList() }
         binding.btnAdvancedSettingsMain.setOnClickListener { openDrawer() }
+        binding.btnReloadSubscription.setOnClickListener { importConfigViaSub() }
 
         binding.btnConnect.setOnClickListener { handleConnectClick() }
         binding.layoutTest.setOnClickListener {
@@ -618,6 +619,9 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         binding.pbWaiting.show()
 
         lifecycleScope.launch(Dispatchers.IO) {
+            if (mainViewModel.subscriptionId.isNullOrBlank()) {
+                mainViewModel.subscriptionIdChanged(AngConfigManager.SERVER_SUB_ID)
+            }
             val count = mainViewModel.updateConfigViaSubAll()
             delay(500L)
             launch(Dispatchers.Main) {

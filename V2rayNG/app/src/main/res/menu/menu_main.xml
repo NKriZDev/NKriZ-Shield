@@ -100,6 +100,7 @@
         app:showAsAction="never" />
     <item
         android:id="@+id/sub_update"
+        android:icon="@drawable/ic_check_update_24dp"
         android:title="@string/title_sub_update"
-        app:showAsAction="never" />
+        app:showAsAction="always|collapseActionView" />
 </menu>
