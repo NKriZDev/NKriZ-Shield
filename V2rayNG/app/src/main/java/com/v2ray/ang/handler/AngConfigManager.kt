@@ -4,8 +4,10 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.text.TextUtils
 import android.util.Log
+import android.util.Base64
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.HY2
+import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.EConfigType
 import com.v2ray.ang.dto.ProfileItem
@@ -23,6 +25,11 @@ import com.v2ray.ang.util.JsonUtil
 import com.v2ray.ang.util.QRCodeDecoder
 import com.v2ray.ang.util.Utils
 import java.net.URI
+import net.i2p.crypto.eddsa.EdDSAEngine
+import net.i2p.crypto.eddsa.EdDSAPublicKey
+import net.i2p.crypto.eddsa.spec.EdDSANamedCurveTable
+import net.i2p.crypto.eddsa.spec.EdDSAPublicKeySpec
+import java.security.MessageDigest
 
 object AngConfigManager {
 
@@ -406,46 +413,29 @@ object AngConfigManager {
      */
     fun updateConfigViaSub(it: Pair<String, SubscriptionItem>): Int {
         try {
-            if (TextUtils.isEmpty(it.first)
-                || TextUtils.isEmpty(it.second.remarks)
-                || TextUtils.isEmpty(it.second.url)
-            ) {
-                return 0
-            }
+            // allow update even if remarks/url are empty; only skip if disabled
             if (!it.second.enabled) {
                 return 0
             }
-            val url = HttpUtil.toIdnUrl(it.second.url)
-            if (!Utils.isValidUrl(url)) {
-                return 0
-            }
-            if (!it.second.allowInsecureUrl) {
-                if (!Utils.isValidSubUrl(url)) {
-                    return 0
-                }
-            }
-            Log.i(AppConfig.TAG, url)
+            val subId = SERVER_SUB_ID
+            ensureHardcodedSubscription()
+            Log.i(AppConfig.TAG, "Using hardcoded subscription: $SERVER_SUB_URL")
             val userAgent = it.second.userAgent
 
-            var configText = try {
-                val httpPort = SettingsManager.getHttpPort()
-                HttpUtil.getUrlContentWithUserAgent(url, userAgent, 15000, httpPort)
-            } catch (e: Exception) {
-                Log.e(AppConfig.ANG_PACKAGE, "Update subscription: proxy not ready or other error", e)
-                ""
-            }
+            var configText = fetchSubscriptionContent(SERVER_SUB_URL, userAgent, SettingsManager.getHttpPort())
             if (configText.isEmpty()) {
-                configText = try {
-                    HttpUtil.getUrlContentWithUserAgent(url, userAgent)
-                } catch (e: Exception) {
-                    Log.e(AppConfig.TAG, "Update subscription: Failed to get URL content with user agent", e)
-                    ""
-                }
+                configText = fetchSubscriptionContent(SERVER_SUB_URL, userAgent, 0)
             }
             if (configText.isEmpty()) {
                 return 0
             }
-            return parseConfigViaSub(configText, it.first, false)
+            val decoded = tryDecodeSignedPayload(configText)
+            return if (decoded != null) {
+                // already verified and decoded text; do not base64-decode again
+                parseConfigViaSubDecoded(decoded, subId, false)
+            } else {
+                parseConfigViaSub(configText, subId, false)
+            }
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to update config via subscription", e)
             return 0
@@ -465,6 +455,17 @@ object AngConfigManager {
         if (count <= 0) {
             count = parseBatchConfig(server, subid, append)
         }
+        if (count <= 0) {
+            count = parseCustomConfigServer(server, subid)
+        }
+        return count
+    }
+
+    /**
+     * Parses already-decoded subscription content (no base64 decode).
+     */
+    private fun parseConfigViaSubDecoded(server: String?, subid: String, append: Boolean): Int {
+        var count = parseBatchConfig(server, subid, append)
         if (count <= 0) {
             count = parseCustomConfigServer(server, subid)
         }
@@ -518,4 +519,98 @@ object AngConfigManager {
         MmkvManager.encodeServerRaw(key, JsonUtil.toJsonPretty(result) ?: "")
         return key
     }
+
+    //region signed subscription helpers
+
+    private const val SERVER_PUBKEY_B64 = "U9cnZKzT5AiGYDlHklY0JjNFY2JfsSurHJdAD/MSkJE="
+    private const val SERVER_TOKEN = "2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a"
+    private const val SERVER_SUB_URL = "https://update.nkriz.ir/configs"
+    private const val SERVER_SUB_ID = "NK_SUB"
+    private const val SERVER_SUB_REMARK = "NKriZ.ir"
+
+    private fun fetchSubscriptionContent(url: String, userAgent: String?, httpPort: Int): String {
+        try {
+            val conn = HttpUtil.createProxyConnection(url, httpPort, 15000, 15000, false) ?: return ""
+            val finalUserAgent = if (userAgent.isNullOrBlank()) {
+                "v2rayNG/${BuildConfig.VERSION_NAME}"
+            } else {
+                userAgent
+            }
+            conn.setRequestProperty("User-agent", finalUserAgent)
+            conn.setRequestProperty("Authorization", "Bearer $SERVER_TOKEN")
+            conn.connect()
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                conn.disconnect()
+                return ""
+            }
+            val text = conn.inputStream.bufferedReader().use { it.readText() }
+            conn.disconnect()
+            return text
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Failed to fetch subscription content", e)
+        }
+        return ""
+    }
+
+    /**
+     * Attempts to decode a signed subscription payload.
+     * Expects JSON with base64 fields: payload, signature (Ed25519), and optional pubkey.
+     * Uses the hardcoded server pubkey for verification.
+     *
+     * @return decoded payload text if verification succeeds, otherwise null.
+     */
+    private fun tryDecodeSignedPayload(jsonText: String): String? {
+        val trimmed = jsonText.trimStart()
+        if (!trimmed.startsWith("{")) return null
+        return try {
+            val obj = JsonUtil.parseString(trimmed) ?: return null
+            val payloadB64 = obj.get("payload")?.asString ?: return null
+            val signatureB64 = obj.get("signature")?.asString ?: return null
+
+            val payloadBytes = Base64.decode(payloadB64, Base64.DEFAULT)
+            val signatureBytes = Base64.decode(signatureB64, Base64.DEFAULT)
+            val pubKeyBytes = Base64.decode(SERVER_PUBKEY_B64, Base64.DEFAULT)
+
+            val verified = verifyEd25519(payloadBytes, signatureBytes, pubKeyBytes)
+            if (!verified) {
+                Log.w(AppConfig.TAG, "Signed payload verification failed")
+                return null
+            }
+            payloadBytes.toString(Charsets.UTF_8)
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Failed to decode signed payload", e)
+            null
+        }
+    }
+
+    private fun verifyEd25519(payload: ByteArray, signature: ByteArray, pubKeyBytes: ByteArray): Boolean {
+        return try {
+            val spec = EdDSAPublicKeySpec(pubKeyBytes, EdDSANamedCurveTable.getByName("Ed25519"))
+            val pubKey = EdDSAPublicKey(spec)
+            val verifier = EdDSAEngine(MessageDigest.getInstance("SHA-512"))
+            verifier.initVerify(pubKey)
+            verifier.update(payload)
+            verifier.verify(signature)
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Ed25519 verification failed", e)
+            false
+        }
+    }
+
+    fun ensureHardcodedSubscription() {
+        val existing = MmkvManager.decodeSubscription(SERVER_SUB_ID)
+        if (existing?.url == SERVER_SUB_URL) {
+            return
+        }
+        val subItem = SubscriptionItem().apply {
+            remarks = SERVER_SUB_REMARK
+            url = SERVER_SUB_URL
+            enabled = true
+            allowInsecureUrl = false
+        }
+        MmkvManager.encodeSubscription(SERVER_SUB_ID, subItem)
+    }
+
+    //endregion
 }

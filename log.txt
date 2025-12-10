@@ -1,0 +1,322 @@
+root@srv8562541295:~# # 2) Rewrite app/main.py to load PEM key correctly
+cat > /opt/config-api/app/main.py <<'PY'
+import os, base64, hashlib, pathlib
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse, Response
+from nacl.signing import SigningKey
+from cryptography.hazmat.primitives import serialization
+
+app = FastAPI()
+
+def load_signing_key():
+    priv_pem = base64.b64decode(os.environ['CONFIG_SIGN_PRIVKEY'])
+    key = serialization.load_pem_private_key(priv_pem, password=None)
+    priv_raw = key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    return SigningKey(priv_raw)
+
+signing_key = load_signing_key()
+verify_key_b64 = base64.b64encode(signing_key.verify_key.encode()).decode()
+token = os.environ['CONFIG_API_TOKEN']
+
+def load_payload():
+    path = pathlib.Path(os.environ.get('CONFIG_PAYLOAD_PATH', '/app/configs.txt'))
+    return path.read_bytes()
+
+@app.get('/health')
+def health():
+    return {'status': 'ok'}
+
+@app.get('/configs')
+def configs(authorization: str = Header(None), if_none_match: str = Header(None)):
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401)
+    if authorization.split(' ', 1)[1] != token:
+        raise HTTPException(status_code=403)
+    payload = load_payload()
+    etag = hashlib.sha256(payload).hexdigest()
+    if if_none_match and if_none_match.strip('"') == etag:
+EOFptography==42.0.8.30.1/requirements.txt <<'EOF'),),
+root@srv8562541295:~# cat > /opt/config-api/app/main.py <<'PY'
+import os, base64, hashlib, pathlib
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse, Response
+from nacl.signing import SigningKey
+from cryptography.hazmat.primitives import serialization
+
+app = FastAPI()
+
+def load_signing_key():
+    priv_pem = base64.b64decode(os.environ['CONFIG_SIGN_PRIVKEY'])
+    key = serialization.load_pem_private_key(priv_pem, password=None)
+    priv_raw = key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    return SigningKey(priv_raw)
+
+signing_key = load_signing_key()
+verify_key_b64 = base64.b64encode(signing_key.verify_key.encode()).decode()
+token = os.environ['CONFIG_API_TOKEN']
+
+def load_payload():
+    path = pathlib.Path(os.environ.get('CONFIG_PAYLOAD_PATH', '/app/configs.txt'))
+    return path.read_bytes()
+
+@app.get('/health')
+def health():
+    return {'status': 'ok'}
+
+@app.get('/configs')
+def configs(authorization: str = Header(None), if_none_match: str = Header(None)):
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401)
+    if authorization.split(' ', 1)[1] != token:
+        raise HTTPException(status_code=403)
+    payload = load_payload()
+    etag = hashlib.sha256(payload).hexdigest()
+    if if_none_match and if_none_match.strip('"') == etag:
+        return Response(status_code=304)
+EOFeverse_proxy api:8080taging-v02.api.letsencrypt.org/directory
+root@srv8562541295:~# cat > /opt/config-api/app/main.py <<'PY'
+import os, base64, hashlib, pathlib
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse, Response
+from nacl.signing import SigningKey
+from cryptography.hazmat.primitives import serialization
+
+app = FastAPI()
+
+def load_signing_key():
+    priv_pem = base64.b64decode(os.environ['CONFIG_SIGN_PRIVKEY'])
+    key = serialization.load_pem_private_key(priv_pem, password=None)
+    priv_raw = key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    return SigningKey(priv_raw)
+
+signing_key = load_signing_key()
+verify_key_b64 = base64.b64encode(signing_key.verify_key.encode()).decode()
+token = os.environ['CONFIG_API_TOKEN']
+
+def load_payload():
+    path = pathlib.Path(os.environ.get('CONFIG_PAYLOAD_PATH', '/app/configs.txt'))
+    return path.read_bytes()
+
+@app.get('/health')
+def health():
+    return {'status': 'ok'}
+
+@app.get('/configs')
+def configs(authorization: str = Header(None), if_none_match: str = Header(None)):
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401)
+    if authorization.split(' ', 1)[1] != token:
+        raise HTTPException(status_code=403)
+    payload = load_payload()
+    etag = hashlib.sha256(payload).hexdigest()
+    if if_none_match and if_none_match.strip('"') == etag:
+        return Response(status_code=304)
+PY  }, headers={'ETag': etag})64,code(sig).decode(),),
+root@srv8562541295:~# cat > /opt/config-api/app/main.py <<'PY'
+import os, base64, hashlib, pathlib
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse, Response
+from nacl.signing import SigningKey
+from cryptography.hazmat.primitives import serialization
+
+app = FastAPI()
+
+def load_signing_key():
+    priv_pem = base64.b64decode(os.environ['CONFIG_SIGN_PRIVKEY'])
+    key = serialization.load_pem_private_key(priv_pem, password=None)
+    priv_raw = key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    return SigningKey(priv_raw)
+
+signing_key = load_signing_key()
+verify_key_b64 = base64.b64encode(signing_key.verify_key.encode()).decode()
+token = os.environ['CONFIG_API_TOKEN']
+
+def load_payload():
+    path = pathlib.Path(os.environ.get('CONFIG_PAYLOAD_PATH', '/app/configs.txt'))
+    return path.read_bytes()
+
+@app.get('/health')
+def health():
+    return {'status': 'ok'}
+
+@app.get('/configs')
+def configs(authorization: str = Header(None), if_none_match: str = Header(None)):
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401)
+    if authorization.split(' ', 1)[1] != token:
+        raise HTTPException(status_code=403)
+    payload = load_payload()
+    etag = hashlib.sha256(payload).hexdigest()
+    if if_none_match and if_none_match.strip('"') == etag:
+        return Response(status_code=304)
+PY  }, headers={'ETag': etag})64,code(sig).decode(),),
+root@srv8562541295:~# cat > /opt/config-api/app/requirements.txt <<'EOF'
+fastapi==0.115.0
+uvicorn[standard]==0.30.1
+PyNaCl==1.5.0
+cryptography==42.0.8
+EOF
+root@srv8562541295:~# cat > /opt/config-api/Caddyfile <<'EOF'
+{
+  email nkrizdev@gmail.com
+  acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+update.nkriz.ir {
+  encode gzip
+  reverse_proxy api:8080
+}
+EOF
+root@srv8562541295:~# cd /opt/config-api && docker-compose down
+cd /opt/config-api && docker-compose up -d
+Stopping config-api_caddy_1 ... done
+Removing config-api_caddy_1 ... done
+Removing config-api_api_1   ... done
+Removing network config-api_default
+Creating network "config-api_default" with the default driver
+Creating config-api_api_1 ... done
+Creating config-api_caddy_1 ... done
+root@srv8562541295:/opt/config-api# curl -k https://update.nkriz.ir/health
+curl -k -H 'Authorization: Bearer 2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a' https://update.nkriz.ir/configs
+^C
+^C
+root@srv8562541295:/opt/config-api# curl http://127.0.0.1:8080/health
+curl -H 'Authorization: Bearer 2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a' http://127.0.0.1:8080/configs
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+root@srv8562541295:/opt/config-api# docker ps -a
+docker logs config-api_api_1 --tail=80
+docker logs config-api_caddy_1 --tail=50
+CONTAINER ID   IMAGE              COMMAND                  CREATED              STATUS              PORTS                                                                                             NAMES
+5140dd646a46   caddy:2            "caddy run --config …"   About a minute ago   Up About a minute   0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp, 443/udp, 2019/tcp   config-api_caddy_1
+45fa097e9ea4   python:3.11-slim   "bash -c 'pip instal…"   About a minute ago   Up About a minute   8080/tcp                                                                                          config-api_api_1
+Collecting click>=7.0 (from uvicorn==0.30.1->uvicorn[standard]==0.30.1->-r requirements.txt (line 2))
+  Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+Collecting h11>=0.8 (from uvicorn==0.30.1->uvicorn[standard]==0.30.1->-r requirements.txt (line 2))
+  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting cffi>=1.4.1 (from PyNaCl==1.5.0->-r requirements.txt (line 3))
+  Downloading cffi-2.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+Collecting httptools>=0.5.0 (from uvicorn[standard]==0.30.1->-r requirements.txt (line 2))
+  Downloading httptools-0.7.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (3.5 kB)
+Collecting python-dotenv>=0.13 (from uvicorn[standard]==0.30.1->-r requirements.txt (line 2))
+  Downloading python_dotenv-1.2.1-py3-none-any.whl.metadata (25 kB)
+Collecting pyyaml>=5.1 (from uvicorn[standard]==0.30.1->-r requirements.txt (line 2))
+  Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Collecting uvloop!=0.15.0,!=0.15.1,>=0.14.0 (from uvicorn[standard]==0.30.1->-r requirements.txt (line 2))
+  Downloading uvloop-0.22.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (4.9 kB)
+Collecting watchfiles>=0.13 (from uvicorn[standard]==0.30.1->-r requirements.txt (line 2))
+  Downloading watchfiles-1.1.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+Collecting websockets>=10.4 (from uvicorn[standard]==0.30.1->-r requirements.txt (line 2))
+  Downloading websockets-15.0.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+Collecting pycparser (from cffi>=1.4.1->PyNaCl==1.5.0->-r requirements.txt (line 3))
+  Downloading pycparser-2.23-py3-none-any.whl.metadata (993 bytes)
+Collecting annotated-types>=0.6.0 (from pydantic!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0,>=1.7.4->fastapi==0.115.0->-r requirements.txt (line 1))
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.41.5 (from pydantic!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0,>=1.7.4->fastapi==0.115.0->-r requirements.txt (line 1))
+  Downloading pydantic_core-2.41.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+Collecting typing-inspection>=0.4.2 (from pydantic!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0,>=1.7.4->fastapi==0.115.0->-r requirements.txt (line 1))
+  Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting anyio<5,>=3.4.0 (from starlette<0.39.0,>=0.37.2->fastapi==0.115.0->-r requirements.txt (line 1))
+  Downloading anyio-4.12.0-py3-none-any.whl.metadata (4.3 kB)
+Collecting idna>=2.8 (from anyio<5,>=3.4.0->starlette<0.39.0,>=0.37.2->fastapi==0.115.0->-r requirements.txt (line 1))
+  Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Downloading fastapi-0.115.0-py3-none-any.whl (94 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 94.6/94.6 kB 67.9 MB/s eta 0:00:00
+Downloading uvicorn-0.30.1-py3-none-any.whl (62 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.4/62.4 kB 73.4 MB/s eta 0:00:00
+Downloading PyNaCl-1.5.0-cp36-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl (856 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 856.7/856.7 kB 48.6 MB/s eta 0:00:00
+Downloading cryptography-42.0.8-cp39-abi3-manylinux_2_28_x86_64.whl (3.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.9/3.9 MB 80.0 MB/s eta 0:00:00
+Downloading cffi-2.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (215 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 215.6/215.6 kB 110.2 MB/s eta 0:00:00
+Downloading click-8.3.1-py3-none-any.whl (108 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 108.3/108.3 kB 102.3 MB/s eta 0:00:00
+Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+Downloading httptools-0.7.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (456 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 456.6/456.6 kB 93.2 MB/s eta 0:00:00
+Downloading pydantic-2.12.5-py3-none-any.whl (463 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 463.6/463.6 kB 91.7 MB/s eta 0:00:00
+Downloading pydantic_core-2.41.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 85.8 MB/s eta 0:00:00
+Downloading python_dotenv-1.2.1-py3-none-any.whl (21 kB)
+Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (806 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 806.6/806.6 kB 88.7 MB/s eta 0:00:00
+Downloading starlette-0.38.6-py3-none-any.whl (71 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 71.5/71.5 kB 107.7 MB/s eta 0:00:00
+Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.6/44.6 kB 110.6 MB/s eta 0:00:00
+Downloading uvloop-0.22.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.8/3.8 MB 81.4 MB/s eta 0:00:00
+Downloading watchfiles-1.1.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (456 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 456.1/456.1 kB 88.4 MB/s eta 0:00:00
+Downloading websockets-15.0.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (182 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 182.3/182.3 kB 97.8 MB/s eta 0:00:00
+Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Downloading anyio-4.12.0-py3-none-any.whl (113 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 113.4/113.4 kB 96.9 MB/s eta 0:00:00
+Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Downloading pycparser-2.23-py3-none-any.whl (118 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 118.1/118.1 kB 96.1 MB/s eta 0:00:00
+Downloading idna-3.11-py3-none-any.whl (71 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 71.0/71.0 kB 95.8 MB/s eta 0:00:00
+Installing collected packages: websockets, uvloop, typing-extensions, pyyaml, python-dotenv, pycparser, idna, httptools, h11, click, annotated-types, uvicorn, typing-inspection, pydantic-core, cffi, anyio, watchfiles, starlette, PyNaCl, pydantic, cryptography, fastapi
+Successfully installed PyNaCl-1.5.0 annotated-types-0.7.0 anyio-4.12.0 cffi-2.0.0 click-8.3.1 cryptography-42.0.8 fastapi-0.115.0 h11-0.16.0 httptools-0.7.1 idna-3.11 pycparser-2.23 pydantic-2.12.5 pydantic-core-2.41.5 python-dotenv-1.2.1 pyyaml-6.0.3 starlette-0.38.6 typing-extensions-4.15.0 typing-inspection-0.4.2 uvicorn-0.30.1 uvloop-0.22.1 watchfiles-1.1.1 websockets-15.0.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+
+[notice] A new release of pip is available: 24.0 -> 25.3
+[notice] To update, run: pip install --upgrade pip
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+{"level":"info","ts":1765359083.4689386,"msg":"maxprocs: Leaving GOMAXPROCS=1: CPU quota undefined"}
+{"level":"info","ts":1765359083.469276,"msg":"GOMEMLIMIT is updated","package":"github.com/KimMachineGun/automemlimit/memlimit","GOMEMLIMIT":1857381580,"previous":9223372036854775807}
+{"level":"info","ts":1765359083.4693935,"msg":"using config from file","file":"/etc/caddy/Caddyfile"}
+{"level":"info","ts":1765359083.4713774,"msg":"adapted config to JSON","adapter":"caddyfile"}
+{"level":"warn","ts":1765359083.4714487,"msg":"Caddyfile input is not formatted; run 'caddy fmt --overwrite' to fix inconsistencies","adapter":"caddyfile","file":"/etc/caddy/Caddyfile","line":2}
+{"level":"info","ts":1765359083.472343,"logger":"admin","msg":"admin endpoint started","address":"localhost:2019","enforce_origin":false,"origins":["//127.0.0.1:2019","//localhost:2019","//[::1]:2019"]}
+{"level":"info","ts":1765359083.4724615,"logger":"http.auto_https","msg":"server is listening only on the HTTPS port but has no TLS connection policies; adding one to enable TLS","server_name":"srv0","https_port":443}
+{"level":"info","ts":1765359083.47247,"logger":"http.auto_https","msg":"enabling automatic HTTP->HTTPS redirects","server_name":"srv0"}
+{"level":"warn","ts":1765359083.4726667,"logger":"http","msg":"HTTP/2 skipped because it requires TLS","network":"tcp","addr":":80"}
+{"level":"warn","ts":1765359083.4726713,"logger":"http","msg":"HTTP/3 skipped because it requires TLS","network":"tcp","addr":":80"}
+{"level":"info","ts":1765359083.4726727,"logger":"http.log","msg":"server running","name":"remaining_auto_https_redirects","protocols":["h1","h2","h3"]}
+{"level":"info","ts":1765359083.4727232,"logger":"http","msg":"enabling HTTP/3 listener","addr":":443"}
+{"level":"info","ts":1765359083.472779,"msg":"failed to sufficiently increase receive buffer size (was: 208 kiB, wanted: 7168 kiB, got: 416 kiB). See https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes for details."}
+{"level":"info","ts":1765359083.4728765,"logger":"http.log","msg":"server running","name":"srv0","protocols":["h1","h2","h3"]}
+{"level":"info","ts":1765359083.4728823,"logger":"http","msg":"enabling automatic TLS certificate management","domains":["update.nkriz.ir"]}
+{"level":"info","ts":1765359083.4751413,"msg":"autosaved config (load with --resume flag)","file":"/config/caddy/autosave.json"}
+{"level":"info","ts":1765359083.4751527,"msg":"serving initial configuration"}
+{"level":"info","ts":1765359083.4786618,"logger":"tls","msg":"storage cleaning happened too recently; skipping for now","storage":"FileStorage:/data/caddy","instance":"8471706c-387f-48e2-8c2e-a278e6b99be7","try_again":1765445483.4786606,"try_again_in":86399.999999639}
+{"level":"info","ts":1765359083.4787242,"logger":"tls","msg":"finished cleaning storage units"}
+{"level":"info","ts":1765359083.4788826,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0xc0004a7200"}
+{"level":"info","ts":1765359083.48048,"logger":"tls.obtain","msg":"acquiring lock","identifier":"update.nkriz.ir"}
+{"level":"info","ts":1765359083.4812155,"logger":"tls.obtain","msg":"lock acquired","identifier":"update.nkriz.ir"}
+{"level":"info","ts":1765359083.4813347,"logger":"tls.obtain","msg":"obtaining certificate","identifier":"update.nkriz.ir"}
+{"level":"info","ts":1765359083.4830275,"logger":"http","msg":"waiting on internal rate limiter","identifiers":["update.nkriz.ir"],"ca":"https://acme-staging-v02.api.letsencrypt.org/directory","account":"nkrizdev@gmail.com"}
+{"level":"info","ts":1765359083.4830384,"logger":"http","msg":"done waiting on internal rate limiter","identifiers":["update.nkriz.ir"],"ca":"https://acme-staging-v02.api.letsencrypt.org/directory","account":"nkrizdev@gmail.com"}
+{"level":"info","ts":1765359083.4830463,"logger":"http","msg":"using ACME account","account_id":"https://acme-staging-v02.api.letsencrypt.org/acme/acct/249255863","account_contact":["mailto:nkrizdev@gmail.com"]}
+{"level":"info","ts":1765359084.360018,"msg":"trying to solve challenge","identifier":"update.nkriz.ir","challenge_type":"tls-alpn-01","ca":"https://acme-staging-v02.api.letsencrypt.org/directory"}
+{"level":"error","ts":1765359095.2327752,"msg":"challenge failed","identifier":"update.nkriz.ir","challenge_type":"tls-alpn-01","problem":{"type":"urn:ietf:params:acme:error:connection","title":"","detail":"158.255.74.249: Timeout during connect (likely firewall problem)","instance":"","subproblems":null},"stacktrace":"github.com/mholt/acmez/v3.(*Client).pollAuthorization\n\tgithub.com/mholt/acmez/v3@v3.1.2/client.go:557\ngithub.com/mholt/acmez/v3.(*Client).solveChallenges\n\tgithub.com/mholt/acmez/v3@v3.1.2/client.go:378\ngithub.com/mholt/acmez/v3.(*Client).ObtainCertificate\n\tgithub.com/mholt/acmez/v3@v3.1.2/client.go:136\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).doIssue\n\tgithub.com/caddyserver/certmagic@v0.24.0/acmeissuer.go:489\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/certmagic@v0.24.0/acmeissuer.go:382\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/caddy/v2@v2.10.2/modules/caddytls/acmeissuer.go:288\ngithub.com/caddyserver/certmagic.(*Config).obtainCert.func2\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:626\ngithub.com/caddyserver/certmagic.doWithRetry\n\tgithub.com/caddyserver/certmagic@v0.24.0/async.go:104\ngithub.com/caddyserver/certmagic.(*Config).obtainCert\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:700\ngithub.com/caddyserver/certmagic.(*Config).ObtainCertAsync\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:505\ngithub.com/caddyserver/certmagic.(*Config).manageOne.func1\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:415\ngithub.com/caddyserver/certmagic.(*jobManager).worker\n\tgithub.com/caddyserver/certmagic@v0.24.0/async.go:73"}
+{"level":"error","ts":1765359095.2328773,"msg":"validating authorization","identifier":"update.nkriz.ir","problem":{"type":"urn:ietf:params:acme:error:connection","title":"","detail":"158.255.74.249: Timeout during connect (likely firewall problem)","instance":"","subproblems":null},"order":"https://acme-staging-v02.api.letsencrypt.org/acme/order/249255863/29415805093","attempt":1,"max_attempts":3,"stacktrace":"github.com/mholt/acmez/v3.(*Client).ObtainCertificate\n\tgithub.com/mholt/acmez/v3@v3.1.2/client.go:152\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).doIssue\n\tgithub.com/caddyserver/certmagic@v0.24.0/acmeissuer.go:489\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/certmagic@v0.24.0/acmeissuer.go:382\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/caddy/v2@v2.10.2/modules/caddytls/acmeissuer.go:288\ngithub.com/caddyserver/certmagic.(*Config).obtainCert.func2\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:626\ngithub.com/caddyserver/certmagic.doWithRetry\n\tgithub.com/caddyserver/certmagic@v0.24.0/async.go:104\ngithub.com/caddyserver/certmagic.(*Config).obtainCert\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:700\ngithub.com/caddyserver/certmagic.(*Config).ObtainCertAsync\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:505\ngithub.com/caddyserver/certmagic.(*Config).manageOne.func1\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:415\ngithub.com/caddyserver/certmagic.(*jobManager).worker\n\tgithub.com/caddyserver/certmagic@v0.24.0/async.go:73"}
+{"level":"info","ts":1765359096.5273857,"msg":"trying to solve challenge","identifier":"update.nkriz.ir","challenge_type":"http-01","ca":"https://acme-staging-v02.api.letsencrypt.org/directory"}
+{"level":"error","ts":1765359107.7951488,"msg":"challenge failed","identifier":"update.nkriz.ir","challenge_type":"http-01","problem":{"type":"urn:ietf:params:acme:error:connection","title":"","detail":"158.255.74.249: Fetching http://update.nkriz.ir/.well-known/acme-challenge/yOt9-_cfhVPH8GFOyKnbcryxg2RpUzX3wf6b2nmVTlk: Timeout during connect (likely firewall problem)","instance":"","subproblems":null},"stacktrace":"github.com/mholt/acmez/v3.(*Client).pollAuthorization\n\tgithub.com/mholt/acmez/v3@v3.1.2/client.go:557\ngithub.com/mholt/acmez/v3.(*Client).solveChallenges\n\tgithub.com/mholt/acmez/v3@v3.1.2/client.go:378\ngithub.com/mholt/acmez/v3.(*Client).ObtainCertificate\n\tgithub.com/mholt/acmez/v3@v3.1.2/client.go:136\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).doIssue\n\tgithub.com/caddyserver/certmagic@v0.24.0/acmeissuer.go:489\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/certmagic@v0.24.0/acmeissuer.go:382\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/caddy/v2@v2.10.2/modules/caddytls/acmeissuer.go:288\ngithub.com/caddyserver/certmagic.(*Config).obtainCert.func2\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:626\ngithub.com/caddyserver/certmagic.doWithRetry\n\tgithub.com/caddyserver/certmagic@v0.24.0/async.go:104\ngithub.com/caddyserver/certmagic.(*Config).obtainCert\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:700\ngithub.com/caddyserver/certmagic.(*Config).ObtainCertAsync\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:505\ngithub.com/caddyserver/certmagic.(*Config).manageOne.func1\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:415\ngithub.com/caddyserver/certmagic.(*jobManager).worker\n\tgithub.com/caddyserver/certmagic@v0.24.0/async.go:73"}
+{"level":"error","ts":1765359107.7952611,"msg":"validating authorization","identifier":"update.nkriz.ir","problem":{"type":"urn:ietf:params:acme:error:connection","title":"","detail":"158.255.74.249: Fetching http://update.nkriz.ir/.well-known/acme-challenge/yOt9-_cfhVPH8GFOyKnbcryxg2RpUzX3wf6b2nmVTlk: Timeout during connect (likely firewall problem)","instance":"","subproblems":null},"order":"https://acme-staging-v02.api.letsencrypt.org/acme/order/249255863/29415809093","attempt":2,"max_attempts":3,"stacktrace":"github.com/mholt/acmez/v3.(*Client).ObtainCertificate\n\tgithub.com/mholt/acmez/v3@v3.1.2/client.go:152\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).doIssue\n\tgithub.com/caddyserver/certmagic@v0.24.0/acmeissuer.go:489\ngithub.com/caddyserver/certmagic.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/certmagic@v0.24.0/acmeissuer.go:382\ngithub.com/caddyserver/caddy/v2/modules/caddytls.(*ACMEIssuer).Issue\n\tgithub.com/caddyserver/caddy/v2@v2.10.2/modules/caddytls/acmeissuer.go:288\ngithub.com/caddyserver/certmagic.(*Config).obtainCert.func2\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:626\ngithub.com/caddyserver/certmagic.doWithRetry\n\tgithub.com/caddyserver/certmagic@v0.24.0/async.go:104\ngithub.com/caddyserver/certmagic.(*Config).obtainCert\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:700\ngithub.com/caddyserver/certmagic.(*Config).ObtainCertAsync\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:505\ngithub.com/caddyserver/certmagic.(*Config).manageOne.func1\n\tgithub.com/caddyserver/certmagic@v0.24.0/config.go:415\ngithub.com/caddyserver/certmagic.(*jobManager).worker\n\tgithub.com/caddyserver/certmagic@v0.24.0/async.go:73"}
+{"level":"error","ts":1765359107.7953098,"logger":"tls.obtain","msg":"could not get certificate from issuer","identifier":"update.nkriz.ir","issuer":"acme-staging-v02.api.letsencrypt.org-directory","error":"HTTP 400 urn:ietf:params:acme:error:connection - 158.255.74.249: Fetching http://update.nkriz.ir/.well-known/acme-challenge/yOt9-_cfhVPH8GFOyKnbcryxg2RpUzX3wf6b2nmVTlk: Timeout during connect (likely firewall problem)"}
+{"level":"error","ts":1765359107.7953467,"logger":"tls.obtain","msg":"will retry","error":"[update.nkriz.ir] Obtain: [update.nkriz.ir] solving challenge: update.nkriz.ir: [update.nkriz.ir] authorization failed: HTTP 400 urn:ietf:params:acme:error:connection - 158.255.74.249: Fetching http://update.nkriz.ir/.well-known/acme-challenge/yOt9-_cfhVPH8GFOyKnbcryxg2RpUzX3wf6b2nmVTlk: Timeout during connect (likely firewall problem) (ca=https://acme-staging-v02.api.letsencrypt.org/directory)","attempt":1,"retrying_in":60,"elapsed":24.314058039,"max_duration":2592000}

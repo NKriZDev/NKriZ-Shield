@@ -73,6 +73,7 @@ class SubSettingActivity : BaseActivity() {
 
     @SuppressLint("NotifyDataSetChanged")
     fun refreshData() {
+        AngConfigManager.ensureHardcodedSubscription()
         subscriptions = MmkvManager.decodeSubscriptions()
         adapter.notifyDataSetChanged()
     }
@@ -85,6 +86,7 @@ class SubSettingActivity : BaseActivity() {
         binding.pbWaiting.show()
 
         lifecycleScope.launch(Dispatchers.IO) {
+            AngConfigManager.ensureHardcodedSubscription()
             val count = AngConfigManager.updateConfigViaSubAll()
             delay(500L)
             launch(Dispatchers.Main) {

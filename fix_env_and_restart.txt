@@ -1,0 +1,91 @@
+# Run this on the server shell (no ssh prefix needed):
+
+# 1) Rewrite .env (no quotes)
+printf '%s\n' "CONFIG_API_TOKEN=2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a" "CONFIG_SIGN_PRIVKEY=LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSUFQSXV1c2dZZDlZcjhFUkxHclJkcDVmbG02U3dobnJKdVBnMmF3OTZ5djAKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=" "CONFIG_SIGN_PUBKEY=LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUNvd0JRWURLMlZ3QXlFQVU5Y25aS3pUNUFpR1lEbEhrbFkwSmpORlkySmZzU3VySEpkQUQvTVNrSkU9Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=" "DOMAIN=update.nkriz.ir" > /opt/config-api/.env
+
+# 2) Rewrite app/main.py to load PEM key correctly
+cat > /opt/config-api/app/main.py <<'PY'
+import os, base64, hashlib, pathlib
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import JSONResponse, Response
+from nacl.signing import SigningKey
+from cryptography.hazmat.primitives import serialization
+
+app = FastAPI()
+
+def load_signing_key():
+    priv_pem = base64.b64decode(os.environ['CONFIG_SIGN_PRIVKEY'])
+    key = serialization.load_pem_private_key(priv_pem, password=None)
+    priv_raw = key.private_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PrivateFormat.Raw,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    return SigningKey(priv_raw)
+
+signing_key = load_signing_key()
+verify_key_b64 = base64.b64encode(signing_key.verify_key.encode()).decode()
+token = os.environ['CONFIG_API_TOKEN']
+
+def load_payload():
+    path = pathlib.Path(os.environ.get('CONFIG_PAYLOAD_PATH', '/app/configs.txt'))
+    return path.read_bytes()
+
+@app.get('/health')
+def health():
+    return {'status': 'ok'}
+
+@app.get('/configs')
+def configs(authorization: str = Header(None), if_none_match: str = Header(None)):
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401)
+    if authorization.split(' ', 1)[1] != token:
+        raise HTTPException(status_code=403)
+    payload = load_payload()
+    etag = hashlib.sha256(payload).hexdigest()
+    if if_none_match and if_none_match.strip('"') == etag:
+        return Response(status_code=304)
+    sig = signing_key.sign(payload).signature
+    return JSONResponse({
+        'payload': base64.b64encode(payload).decode(),
+        'signature': base64.b64encode(sig).decode(),
+        'pubkey': verify_key_b64,
+    }, headers={'ETag': etag})
+PY
+
+# 3) Rewrite requirements.txt adding cryptography
+cat > /opt/config-api/app/requirements.txt <<'EOF'
+fastapi==0.115.0
+uvicorn[standard]==0.30.1
+PyNaCl==1.5.0
+cryptography==42.0.8
+EOF
+
+# 4) Update Caddyfile with real email and staging ACME
+cat > /opt/config-api/Caddyfile <<'EOF'
+{
+  email nkrizdev@gmail.com
+}
+
+update.nkriz.ir {
+  encode gzip
+  reverse_proxy api:8080
+}
+EOF
+
+# 5) Restart stack
+cd /opt/config-api && docker-compose down
+cd /opt/config-api && docker-compose up -d
+
+# 6) Check containers and logs
+docker ps -a
+docker logs config-api_api_1 --tail=80
+docker logs config-api_caddy_1 --tail=50
+
+# 7) Test health/configs via Caddy (TLS)
+curl -k https://update.nkriz.ir/health
+curl -k -H 'Authorization: Bearer 2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a' https://update.nkriz.ir/configs
+
+# 8) Test direct to API (no TLS)
+curl http://127.0.0.1:8080/health
+curl -H 'Authorization: Bearer 2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a' http://127.0.0.1:8080/configs

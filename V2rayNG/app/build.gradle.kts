@@ -137,6 +137,8 @@ android {
 dependencies {
     // Core Libraries
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
+    // Ed25519 verification
+    implementation("net.i2p.crypto:eddsa:0.3.0")
 
     // AndroidX Core Libraries
     implementation(libs.androidx.core.ktx)
