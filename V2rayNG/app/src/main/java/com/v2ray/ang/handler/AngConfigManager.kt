@@ -25,11 +25,9 @@ import com.v2ray.ang.util.JsonUtil
 import com.v2ray.ang.util.QRCodeDecoder
 import com.v2ray.ang.util.Utils
 import java.net.URI
-import net.i2p.crypto.eddsa.EdDSAEngine
-import net.i2p.crypto.eddsa.EdDSAPublicKey
-import net.i2p.crypto.eddsa.spec.EdDSANamedCurveTable
-import net.i2p.crypto.eddsa.spec.EdDSAPublicKeySpec
-import java.security.MessageDigest
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 object AngConfigManager {
 
@@ -429,13 +427,12 @@ object AngConfigManager {
             if (configText.isEmpty()) {
                 return 0
             }
-            val decoded = tryDecodeSignedPayload(configText)
-            return if (decoded != null) {
-                // already verified and decoded text; do not base64-decode again
-                parseConfigViaSubDecoded(decoded, subId, false)
-            } else {
-                parseConfigViaSub(configText, subId, false)
+            val decoded = tryDecryptEncryptedPayload(configText)
+            if (decoded == null) {
+                Log.w(AppConfig.TAG, "Failed to decrypt subscription payload")
+                return 0
             }
+            return parseConfigViaSubDecoded(decoded, subId, false)
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to update config via subscription", e)
             return 0
@@ -520,11 +517,11 @@ object AngConfigManager {
         return key
     }
 
-    //region signed subscription helpers
+    //region encrypted subscription helpers
 
-    private const val SERVER_PUBKEY_B64 = "U9cnZKzT5AiGYDlHklY0JjNFY2JfsSurHJdAD/MSkJE="
-    private const val SERVER_TOKEN = "2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a"
-    private const val SERVER_SUB_URL = "https://update.nkriz.ir/configs"
+    private const val SERVER_TOKEN = "7c1a7d0b8861f78538584047acb33442cb05283e"
+    private const val SERVER_SUB_URL = "http://update.nkriz.ir:8081/configs"
+    private const val SERVER_ENC_KEY_B64 = "wAq6f83NaIsdfsKh2nOgIgJdVTQBESze2GMOcsB7fJQ="
     const val SERVER_SUB_ID = "NK_SUB"
     private const val SERVER_SUB_REMARK = "NKriZ.ir"
 
@@ -554,47 +551,36 @@ object AngConfigManager {
     }
 
     /**
-     * Attempts to decode a signed subscription payload.
-     * Expects JSON with base64 fields: payload, signature (Ed25519), and optional pubkey.
-     * Uses the hardcoded server pubkey for verification.
+     * Attempts to decrypt an encrypted subscription payload.
+     * Expects JSON with base64 fields: nonce (12 bytes) and data (ciphertext+tag).
      *
-     * @return decoded payload text if verification succeeds, otherwise null.
+     * @return decoded payload text if decryption succeeds, otherwise null.
      */
-    private fun tryDecodeSignedPayload(jsonText: String): String? {
+    private fun tryDecryptEncryptedPayload(jsonText: String): String? {
         val trimmed = jsonText.trimStart()
         if (!trimmed.startsWith("{")) return null
         return try {
             val obj = JsonUtil.parseString(trimmed) ?: return null
-            val payloadB64 = obj.get("payload")?.asString ?: return null
-            val signatureB64 = obj.get("signature")?.asString ?: return null
+            val nonceB64 = obj.get("nonce")?.asString ?: return null
+            val dataB64 = obj.get("data")?.asString ?: return null
 
-            val payloadBytes = Base64.decode(payloadB64, Base64.DEFAULT)
-            val signatureBytes = Base64.decode(signatureB64, Base64.DEFAULT)
-            val pubKeyBytes = Base64.decode(SERVER_PUBKEY_B64, Base64.DEFAULT)
-
-            val verified = verifyEd25519(payloadBytes, signatureBytes, pubKeyBytes)
-            if (!verified) {
-                Log.w(AppConfig.TAG, "Signed payload verification failed")
+            val keyBytes = Base64.decode(SERVER_ENC_KEY_B64, Base64.DEFAULT)
+            if (keyBytes.size != 32) {
+                Log.e(AppConfig.TAG, "Invalid AES key length: ${keyBytes.size}")
                 return null
             }
+
+            val nonceBytes = Base64.decode(nonceB64, Base64.DEFAULT)
+            val dataBytes = Base64.decode(dataB64, Base64.DEFAULT)
+
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            val spec = GCMParameterSpec(128, nonceBytes)
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), spec)
+            val payloadBytes = cipher.doFinal(dataBytes)
             payloadBytes.toString(Charsets.UTF_8)
         } catch (e: Exception) {
-            Log.e(AppConfig.TAG, "Failed to decode signed payload", e)
+            Log.e(AppConfig.TAG, "Failed to decrypt payload", e)
             null
-        }
-    }
-
-    private fun verifyEd25519(payload: ByteArray, signature: ByteArray, pubKeyBytes: ByteArray): Boolean {
-        return try {
-            val spec = EdDSAPublicKeySpec(pubKeyBytes, EdDSANamedCurveTable.getByName("Ed25519"))
-            val pubKey = EdDSAPublicKey(spec)
-            val verifier = EdDSAEngine(MessageDigest.getInstance("SHA-512"))
-            verifier.initVerify(pubKey)
-            verifier.update(payload)
-            verifier.verify(signature)
-        } catch (e: Exception) {
-            Log.e(AppConfig.TAG, "Ed25519 verification failed", e)
-            false
         }
     }
 
@@ -607,7 +593,7 @@ object AngConfigManager {
             remarks = SERVER_SUB_REMARK
             url = SERVER_SUB_URL
             enabled = true
-            allowInsecureUrl = false
+            allowInsecureUrl = true
         }
         MmkvManager.encodeSubscription(SERVER_SUB_ID, subItem)
     }
