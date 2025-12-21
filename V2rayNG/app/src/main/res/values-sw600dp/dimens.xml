@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="action_container_size">90dp</dimen>
+    <dimen name="action_button_size">84dp</dimen>
+    <dimen name="action_button_radius">42dp</dimen>
+    <dimen name="action_icon_size">30dp</dimen>
+    <dimen name="action_icon_small">20dp</dimen>
+    <dimen name="action_progress_thickness">4dp</dimen>
+    <dimen name="action_line_height_small">32dp</dimen>
+    <dimen name="action_line_height_mid">42dp</dimen>
+    <dimen name="action_line_width">3dp</dimen>
+    <dimen name="action_line_width_active">5dp</dimen>
+
+    <dimen name="connect_container_size">234dp</dimen>
+    <dimen name="connect_button_size">230dp</dimen>
+    <dimen name="connect_button_radius">115dp</dimen>
+    <dimen name="connect_progress_thickness">64dp</dimen>
+    <dimen name="cloud_glow_size">560dp</dimen>
+    <dimen name="cloud_glow_radius">280dp</dimen>
+</resources>

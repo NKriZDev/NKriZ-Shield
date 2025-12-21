@@ -291,6 +291,8 @@
     <string name="title_create_intelligent_selection_all_server">Creating Intelligent Selection Current Group Configuration</string>
     <string name="title_user_asset_setting">Asset files</string>
     <string name="title_sort_by_test_results">Sorting by test results</string>
+    <string name="title_test_and_select_best">Test &amp; select best server</string>
+    <string name="title_select_next_server">Select next best server</string>
     <string name="title_filter_config">Filter configuration</string>
     <string name="filter_config_all">All groups</string>
     <string name="title_del_duplicate_config_count">Delete %d duplicate configurations</string>
@@ -298,6 +300,13 @@
     <string name="title_import_config_count">Import %d configurations</string>
     <string name="title_export_config_count">Export %d configurations</string>
     <string name="title_update_config_count">Update %d configurations</string>
+    <string name="toast_best_server_selected">Selected: %1$s (%2$dms)</string>
+    <string name="toast_next_server_unreachable">Next server has no valid ping result</string>
+    <string name="toast_no_next_server">No next server available</string>
+    <string name="toast_next_server_selected">Selected next: %1$s (%2$dms)</string>
+    <string name="toast_hidden_controls_on">Hidden controls enabled</string>
+    <string name="toast_hidden_controls_off">Hidden controls disabled</string>
+    <string name="title_start_flow">Start flow</string>
 
     <string name="tasker_start_service">Start Service</string>
     <string name="tasker_setting_confirm">Confirm</string>

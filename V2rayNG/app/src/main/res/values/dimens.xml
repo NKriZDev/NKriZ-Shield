@@ -9,4 +9,22 @@
     <dimen name="view_height_dp48">48dp</dimen>
     <dimen name="view_height_dp64">64dp</dimen>
     <dimen name="view_height_dp160">160dp</dimen>
+
+    <dimen name="action_container_size">76dp</dimen>
+    <dimen name="action_button_size">72dp</dimen>
+    <dimen name="action_button_radius">36dp</dimen>
+    <dimen name="action_icon_size">26dp</dimen>
+    <dimen name="action_icon_small">18dp</dimen>
+    <dimen name="action_progress_thickness">3dp</dimen>
+    <dimen name="action_line_height_small">28dp</dimen>
+    <dimen name="action_line_height_mid">36dp</dimen>
+    <dimen name="action_line_width">2dp</dimen>
+    <dimen name="action_line_width_active">4dp</dimen>
+
+    <dimen name="connect_container_size">204dp</dimen>
+    <dimen name="connect_button_size">200dp</dimen>
+    <dimen name="connect_button_radius">100dp</dimen>
+    <dimen name="connect_progress_thickness">48dp</dimen>
+    <dimen name="cloud_glow_size">420dp</dimen>
+    <dimen name="cloud_glow_radius">210dp</dimen>
 </resources>

@@ -38,6 +38,7 @@ import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MigrateManager
 import com.v2ray.ang.handler.MmkvManager
+import com.v2ray.ang.handler.SpeedtestManager
 import com.v2ray.ang.helper.SimpleItemTouchHelperCallback
 import com.v2ray.ang.handler.V2RayServiceManager
 import com.v2ray.ang.util.Utils
@@ -104,6 +105,11 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         }
 
     private var pendingAction: Action = Action.NONE
+    private var flowInProgress = false
+    private var flowConnectTriggered = false
+    private var flowAwaitingPing = false
+    private var userDisconnectRequested = false
+    private var suppressDisconnectReset = false
 
     enum class Action {
         NONE,
@@ -142,6 +148,19 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         binding.btnCloseServerList.setOnClickListener { hideServerList() }
         binding.btnAdvancedSettingsMain.setOnClickListener { openDrawer() }
         binding.btnReloadSubscription.setOnClickListener { importConfigViaSub() }
+        binding.btnTestAndSelectBest.setOnClickListener { testAndSelectBestServer() }
+        binding.btnSelectNextServer.setOnClickListener { selectNextServer() }
+        binding.btnFlowStart.setOnClickListener { startFlowSequence() }
+
+        applyMainShortcutVisibility()
+        binding.btnConnect.setOnLongClickListener {
+            val show = !MmkvManager.decodeSettingsBool(AppConfig.PREF_SHOW_MAIN_SHORTCUTS, false)
+            MmkvManager.encodeSettings(AppConfig.PREF_SHOW_MAIN_SHORTCUTS, show)
+            applyMainShortcutVisibility()
+            toast(if (show) R.string.toast_hidden_controls_on else R.string.toast_hidden_controls_off)
+            true
+        }
+        resetFlowUi()
 
         binding.btnConnect.setOnClickListener { handleConnectClick() }
         binding.layoutTest.setOnClickListener {
@@ -215,12 +234,17 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
 
     private fun hideServerList() {
         binding.serverListContainer.isVisible = false
-        binding.btnOpenServerList.isVisible = true
+        applyMainShortcutVisibility()
         binding.tabGroup.isVisible = false
         binding.connectBlock.isVisible = true
         binding.layoutTest.isVisible = true
         binding.btnCloseServerList.isVisible = false
-        binding.btnAdvancedSettingsMain.isVisible = true
+    }
+
+    private fun applyMainShortcutVisibility() {
+        val show = MmkvManager.decodeSettingsBool(AppConfig.PREF_SHOW_MAIN_SHORTCUTS, false)
+        binding.btnOpenServerList.isVisible = show
+        binding.btnAdvancedSettingsMain.isVisible = show
     }
 
     private fun openDrawer() {
@@ -283,6 +307,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
 
     private fun handleConnectClick() {
         if (mainViewModel.isRunning.value == true) {
+            userDisconnectRequested = true
             V2RayServiceManager.stopVService(this)
         } else if ((MmkvManager.decodeSettingsString(AppConfig.PREF_MODE) ?: VPN) == VPN) {
             val intent = VpnService.prepare(this)
@@ -299,19 +324,24 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     private fun updateConnectButton(isRunning: Boolean) {
         adapter.isRunning = isRunning
         if (isRunning) {
+            suppressDisconnectReset = false
             binding.btnConnect.text = getString(R.string.action_disconnect)
             binding.btnConnect.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_active))
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.connect_button_bg))
             setTestState(getString(R.string.connection_test_testing))
             mainViewModel.testCurrentServerRealPing()
             binding.layoutTest.isFocusable = true
         } else {
             binding.btnConnect.text = getString(R.string.action_connect)
             binding.btnConnect.backgroundTintList =
-                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_inactive))
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.connect_button_bg))
             setTestState(getString(R.string.connection_not_connected))
             binding.layoutTest.isFocusable = false
             binding.tabGroup.isVisible = false
+            if (!suppressDisconnectReset || userDisconnectRequested) {
+                clearFlowEffects()
+            }
+            userDisconnectRequested = false
         }
     }
 
@@ -324,7 +354,17 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 adapter.notifyDataSetChanged()
             }
         }
-        mainViewModel.updateTestResultAction.observe(this) { setTestState(it) }
+        mainViewModel.updateTestResultAction.observe(this) {
+            setTestState(it)
+            if (flowAwaitingPing && isPingSuccess(it)) {
+                onFlowPingSuccess()
+            }
+        }
+        mainViewModel.connectionFailureAction.observe(this) {
+            suppressDisconnectReset = false
+            userDisconnectRequested = false
+            clearFlowEffects()
+        }
         mainViewModel.isRunning.observe(this) { isRunning -> updateConnectButton(isRunning) }
         mainViewModel.startListenBroadcast()
         mainViewModel.initAssets(assets)
@@ -719,6 +759,243 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         }
     }
 
+    private fun testAndSelectBestServer(): Boolean {
+        binding.pbWaiting.show()
+        lifecycleScope.launch(Dispatchers.IO) {
+            val bestGuid = mainViewModel.testAndSelectBestServer()
+            if (!bestGuid.isNullOrEmpty()) {
+                mainViewModel.sortCurrentGroupByTestResults()
+            }
+            withContext(Dispatchers.Main) {
+                if (!bestGuid.isNullOrEmpty()) {
+                    val profile = MmkvManager.decodeServerConfig(bestGuid)
+                    val delay = MmkvManager.decodeServerAffiliationInfo(bestGuid)?.testDelayMillis ?: 0L
+                    if (profile != null && delay > 0L) {
+                        toast(getString(R.string.toast_best_server_selected, profile.remarks, delay))
+                    } else {
+                        toast(R.string.toast_success)
+                    }
+                    mainViewModel.reloadServerList()
+                } else {
+                    toastError(R.string.toast_failure)
+                }
+                binding.pbWaiting.hide()
+            }
+        }
+        return true
+    }
+
+    private fun startFlowSequence(): Boolean {
+        if (flowInProgress) {
+            return true
+        }
+        flowInProgress = true
+        flowConnectTriggered = false
+        flowAwaitingPing = false
+        resetFlowUi()
+
+        binding.lineFlowUpdateActive.visibility = View.VISIBLE
+        binding.progressFlow.visibility = View.VISIBLE
+        binding.progressUpdate.visibility = View.VISIBLE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            if (mainViewModel.subscriptionId.isNullOrBlank()) {
+                mainViewModel.subscriptionIdChanged(AngConfigManager.SERVER_SUB_ID)
+            }
+            val count = mainViewModel.updateConfigViaSubAll()
+            withContext(Dispatchers.Main) {
+                binding.progressFlow.visibility = View.INVISIBLE
+                binding.progressUpdate.visibility = View.INVISIBLE
+                if (count > 0) {
+                    binding.ringFlowDone.visibility = View.VISIBLE
+                    binding.ringUpdateDone.visibility = View.VISIBLE
+                    binding.lineUpdateSpeedtestActive.visibility = View.VISIBLE
+                    mainViewModel.reloadServerList()
+                    startSpeedtestFlow()
+                } else {
+                    flowInProgress = false
+                    toastError(R.string.toast_failure)
+                }
+            }
+        }
+        return true
+    }
+
+    private fun startSpeedtestFlow() {
+        binding.progressSpeedtest.visibility = View.VISIBLE
+        lifecycleScope.launch(Dispatchers.IO) {
+            val servers = mainViewModel.serversCache.toList()
+            if (servers.isEmpty()) {
+                withContext(Dispatchers.Main) {
+                    binding.progressSpeedtest.visibility = View.INVISIBLE
+                    flowInProgress = false
+                    toastError(R.string.toast_failure)
+                }
+                return@launch
+            }
+
+            SpeedtestManager.closeAllTcpSockets()
+            MmkvManager.clearAllTestDelayResults(servers.map { it.guid })
+
+            val thresholdMs = 500L
+            val minCount = 6
+            var underThresholdCount = 0
+            var bestGuid: String? = null
+            var bestDelay = Long.MAX_VALUE
+            var connectTriggered = false
+
+            for (item in servers) {
+                val serverAddress = item.profile.server
+                val serverPort = item.profile.serverPort
+                val testResult = if (!serverAddress.isNullOrBlank() && !serverPort.isNullOrBlank()) {
+                    SpeedtestManager.tcping(serverAddress, serverPort.toInt())
+                } else {
+                    -1L
+                }
+
+                MmkvManager.encodeServerTestDelayMillis(item.guid, testResult)
+                mainViewModel.updateListAction.postValue(mainViewModel.getPosition(item.guid))
+
+                if (testResult > 0) {
+                    if (testResult < thresholdMs) {
+                        underThresholdCount += 1
+                    }
+                    if (testResult < bestDelay) {
+                        bestDelay = testResult
+                        bestGuid = item.guid
+                    }
+                }
+
+                if (!connectTriggered && underThresholdCount > 5) {
+                    connectTriggered = true
+                    withContext(Dispatchers.Main) {
+                        startConnectFlow(bestGuid)
+                    }
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+                binding.progressSpeedtest.visibility = View.INVISIBLE
+                binding.ringSpeedtestDone.visibility = View.VISIBLE
+                mainViewModel.sortCurrentGroupByTestResults()
+                mainViewModel.reloadServerList()
+                if (!connectTriggered) {
+                    startConnectFlow(bestGuid)
+                }
+            }
+        }
+    }
+
+    private fun startConnectFlow(bestGuid: String?) {
+        if (flowConnectTriggered) {
+            return
+        }
+        flowConnectTriggered = true
+        userDisconnectRequested = false
+        binding.lineSpeedtestConnectActive.visibility = View.VISIBLE
+        binding.progressConnect.visibility = View.VISIBLE
+
+        if (!bestGuid.isNullOrBlank()) {
+            MmkvManager.setSelectServer(bestGuid)
+            mainViewModel.reloadServerList()
+        }
+
+        if (mainViewModel.isRunning.value == true) {
+            suppressDisconnectReset = true
+            V2RayServiceManager.stopVService(this)
+            lifecycleScope.launch {
+                delay(500)
+                startV2Ray()
+            }
+        } else {
+            suppressDisconnectReset = false
+            startV2Ray()
+        }
+        flowAwaitingPing = true
+    }
+
+    private fun onFlowPingSuccess() {
+        flowAwaitingPing = false
+        binding.progressConnect.visibility = View.INVISIBLE
+        binding.ringConnectDone.visibility = View.VISIBLE
+        showCloudGlow()
+        flowInProgress = false
+    }
+
+    private fun isPingSuccess(content: String?): Boolean {
+        if (content.isNullOrBlank()) {
+            return false
+        }
+        if (!content.contains("ms")) {
+            return false
+        }
+        return content.any { it.isDigit() }
+    }
+
+    private fun resetFlowUi() {
+        binding.progressFlow.visibility = View.INVISIBLE
+        binding.progressUpdate.visibility = View.INVISIBLE
+        binding.progressSpeedtest.visibility = View.INVISIBLE
+        binding.progressConnect.visibility = View.INVISIBLE
+
+        binding.ringFlowDone.visibility = View.INVISIBLE
+        binding.ringUpdateDone.visibility = View.INVISIBLE
+        binding.ringSpeedtestDone.visibility = View.INVISIBLE
+        binding.ringConnectDone.visibility = View.INVISIBLE
+
+        binding.lineFlowUpdateActive.visibility = View.INVISIBLE
+        binding.lineUpdateSpeedtestActive.visibility = View.INVISIBLE
+        binding.lineSpeedtestConnectActive.visibility = View.INVISIBLE
+        hideCloudGlow()
+    }
+
+    private fun clearFlowEffects() {
+        resetFlowUi()
+        flowInProgress = false
+        flowConnectTriggered = false
+        flowAwaitingPing = false
+    }
+
+    private fun selectNextServer(): Boolean {
+        val servers = mainViewModel.serversCache
+        if (servers.isEmpty()) {
+            toastError(R.string.toast_failure)
+            return true
+        }
+
+        val selectedGuid = MmkvManager.getSelectServer()
+        val currentIndex = servers.indexOfFirst { it.guid == selectedGuid }
+        val nextIndex = if (currentIndex >= 0) currentIndex + 1 else 0
+        if (nextIndex >= servers.size) {
+            toast(R.string.toast_no_next_server)
+            return true
+        }
+
+        val nextServer = servers[nextIndex]
+        val delay = MmkvManager.decodeServerAffiliationInfo(nextServer.guid)?.testDelayMillis ?: 0L
+        if (delay <= 0L) {
+            toast(R.string.toast_next_server_unreachable)
+            return true
+        }
+
+        MmkvManager.setSelectServer(nextServer.guid)
+        mainViewModel.reloadServerList()
+        toast(getString(R.string.toast_next_server_selected, nextServer.profile.remarks, delay))
+
+        if (mainViewModel.isRunning.value == true) {
+            V2RayServiceManager.stopVService(this)
+            lifecycleScope.launch {
+                try {
+                    delay(500)
+                    V2RayServiceManager.startVService(this@MainActivity)
+                } catch (e: Exception) {
+                    Log.e(AppConfig.TAG, "Failed to restart V2Ray service", e)
+                }
+            }
+        }
+        return true
+    }
+
     /**
      * show file chooser
      */
@@ -765,7 +1042,43 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     }
 
     private fun setTestState(content: String?) {
-        binding.tvTestState.text = content
+        val lines = content?.split("\n") ?: emptyList()
+        val ping = lines.firstOrNull()?.takeIf { it.contains("ms") }
+        val country = lines.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }
+
+        if (ping != null) {
+            binding.btnConnect.text = if (country != null) {
+                "$ping\n$country"
+            } else {
+                ping
+            }
+            binding.tvTestState.text = getString(R.string.connection_connected)
+            showCloudGlow()
+        } else {
+            binding.tvTestState.text = content
+            if (mainViewModel.isRunning.value != true) {
+                binding.btnConnect.text = getString(R.string.action_connect)
+                hideCloudGlow()
+            }
+        }
+    }
+
+    private fun showCloudGlow() {
+        binding.cloudGlow.animate().cancel()
+        if (binding.cloudGlow.visibility != View.VISIBLE) {
+            binding.cloudGlow.alpha = 0f
+            binding.cloudGlow.visibility = View.VISIBLE
+        }
+        binding.cloudGlow.animate()
+            .alpha(1f)
+            .setDuration(1800)
+            .start()
+    }
+
+    private fun hideCloudGlow() {
+        binding.cloudGlow.animate().cancel()
+        binding.cloudGlow.alpha = 0f
+        binding.cloudGlow.visibility = View.INVISIBLE
     }
 
 //    val mConnection = object : ServiceConnection {

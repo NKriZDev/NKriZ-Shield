@@ -42,6 +42,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val isRunning by lazy { MutableLiveData<Boolean>() }
     val updateListAction by lazy { MutableLiveData<Int>() }
     val updateTestResultAction by lazy { MutableLiveData<String>() }
+    val connectionFailureAction by lazy { MutableLiveData<Unit>() }
     private val tcpingTestScope by lazy { CoroutineScope(Dispatchers.IO) }
 
     /**
@@ -72,7 +73,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun reloadServerList() {
         serverList = MmkvManager.decodeServerList()
         updateCache()
-        updateListAction.value = -1
+        updateListAction.postValue(-1)
     }
 
     /**
@@ -224,6 +225,51 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    /**
+     * Tests TCP ping for all servers in the current cache, selects the best server,
+     * and stores delay results for ranking.
+     *
+     * @return The GUID of the best server, or null if none are valid.
+     */
+    suspend fun testAndSelectBestServer(): String? {
+        tcpingTestScope.coroutineContext[Job]?.cancelChildren()
+        SpeedtestManager.closeAllTcpSockets()
+        MmkvManager.clearAllTestDelayResults(serversCache.map { it.guid }.toList())
+
+        val serversCopy = serversCache.toList()
+        if (serversCopy.isEmpty()) {
+            return null
+        }
+
+        var bestGuid: String? = null
+        var bestDelay = Long.MAX_VALUE
+
+        for (item in serversCopy) {
+            val serverAddress = item.profile.server
+            val serverPort = item.profile.serverPort
+            if (serverAddress.isNullOrBlank() || serverPort.isNullOrBlank()) {
+                MmkvManager.encodeServerTestDelayMillis(item.guid, -1L)
+                updateListAction.postValue(getPosition(item.guid))
+                continue
+            }
+
+            val testResult = SpeedtestManager.tcping(serverAddress, serverPort.toInt())
+            MmkvManager.encodeServerTestDelayMillis(item.guid, testResult)
+            updateListAction.postValue(getPosition(item.guid))
+
+            if (testResult > 0 && testResult < bestDelay) {
+                bestDelay = testResult
+                bestGuid = item.guid
+            }
+        }
+
+        if (!bestGuid.isNullOrEmpty()) {
+            MmkvManager.setSelectServer(bestGuid)
+        }
+
+        return bestGuid
     }
 
     /**
@@ -385,6 +431,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
+     * Sorts only the current group servers by their test results.
+     */
+    fun sortCurrentGroupByTestResults() {
+        val groupGuids = serversCache.map { it.guid }
+        if (groupGuids.isEmpty()) {
+            return
+        }
+
+        val groupSet = groupGuids.toHashSet()
+        val delayMap = groupGuids.associateWith { guid ->
+            val delay = MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis ?: 0L
+            if (delay <= 0L) 999999L else delay
+        }
+        val sortedGroup = groupGuids.sortedBy { delayMap[it] ?: 999999L }
+        val sortedIter = sortedGroup.iterator()
+
+        val serverList = MmkvManager.decodeServerList()
+        val reordered = serverList.map { guid ->
+            if (groupSet.contains(guid) && sortedIter.hasNext()) {
+                sortedIter.next()
+            } else {
+                guid
+            }
+        }.toMutableList()
+
+        MmkvManager.encodeServerList(reordered)
+    }
+
+    /**
      * Creates an intelligent selection configuration containing all currently filtered servers.
      */
     fun createIntelligentSelectionAll() {
@@ -449,6 +524,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 AppConfig.MSG_STATE_START_FAILURE -> {
                     getApplication<AngApplication>().toastError(R.string.toast_services_failure)
                     isRunning.value = false
+                    connectionFailureAction.value = Unit
                 }
 
                 AppConfig.MSG_STATE_STOP_SUCCESS -> {

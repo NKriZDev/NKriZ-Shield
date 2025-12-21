@@ -30,6 +30,10 @@ import net.i2p.crypto.eddsa.EdDSAPublicKey
 import net.i2p.crypto.eddsa.spec.EdDSANamedCurveTable
 import net.i2p.crypto.eddsa.spec.EdDSAPublicKeySpec
 import java.security.MessageDigest
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 object AngConfigManager {
 
@@ -429,13 +433,25 @@ object AngConfigManager {
             if (configText.isEmpty()) {
                 return 0
             }
-            val decoded = tryDecodeSignedPayload(configText)
-            return if (decoded != null) {
-                // already verified and decoded text; do not base64-decode again
-                parseConfigViaSubDecoded(decoded, subId, false)
-            } else {
-                parseConfigViaSub(configText, subId, false)
+            val decrypted = tryDecryptEncryptedPayload(configText)
+            if (decrypted != null) {
+                return parseConfigViaSub(decrypted, subId, false)
             }
+
+            val decoded = tryDecodeSignedPayload(configText)
+            if (decoded != null) {
+                return parseConfigViaSub(decoded, subId, false)
+            }
+
+            val extracted = tryExtractPayloadFromJson(configText)
+            if (extracted != null) {
+                val count = parseConfigViaSub(extracted, subId, false)
+                if (count > 0) {
+                    return count
+                }
+            }
+
+            return parseConfigViaSub(configText, subId, false)
         } catch (e: Exception) {
             Log.e(AppConfig.TAG, "Failed to update config via subscription", e)
             return 0
@@ -522,9 +538,10 @@ object AngConfigManager {
 
     //region signed subscription helpers
 
-    private const val SERVER_PUBKEY_B64 = "U9cnZKzT5AiGYDlHklY0JjNFY2JfsSurHJdAD/MSkJE="
-    private const val SERVER_TOKEN = "2ab58b1086495c2562475ee5c6ad17173a0f0474125c4d9a"
-    private const val SERVER_SUB_URL = "https://update.nkriz.ir/configs"
+    private const val SERVER_TOKEN = "7c1a7d0b8861f78538584047acb33442cb05283e"
+    private const val SERVER_SUB_URL = "http://api.nkriz.ir:8081/configs"
+    private const val SERVER_ENC_KEY_B64 = "wAq6f83NaIsdfsKh2nOgIgJdVTQBESze2GMOcsB7fJQ="
+    private const val SERVER_PUBKEY_B64 = ""
     const val SERVER_SUB_ID = "NK_SUB"
     private const val SERVER_SUB_REMARK = "NKriZ.ir"
 
@@ -551,6 +568,142 @@ object AngConfigManager {
             Log.e(AppConfig.TAG, "Failed to fetch subscription content", e)
         }
         return ""
+    }
+
+    /**
+     * Attempts to decrypt an AES-256-GCM payload.
+     * Expects JSON with base64 field: enc (nonce + ciphertext + tag).
+     */
+    private fun tryDecryptEncryptedPayload(jsonText: String): String? {
+        val trimmed = jsonText.trimStart()
+        if (!trimmed.startsWith("{")) return null
+        return try {
+            val obj = JsonUtil.parseString(trimmed) ?: return null
+            val keyBytes = decodeBase64Bytes(SERVER_ENC_KEY_B64) ?: return null
+            if (keyBytes.size != 32) {
+                Log.w(AppConfig.TAG, "Invalid encryption key length")
+                return null
+            }
+
+            val encB64 = obj.get("enc")?.asString
+            if (!encB64.isNullOrBlank()) {
+                val encBytes = decodeBase64Bytes(encB64) ?: return null
+                if (encBytes.size < 28) {
+                    return null
+                }
+                val gcmIvSizes = listOf(12, 16)
+                for (ivSize in gcmIvSizes) {
+                    if (encBytes.size <= ivSize + 16) {
+                        continue
+                    }
+                    val iv = encBytes.copyOfRange(0, ivSize)
+                    val cipherAndTag = encBytes.copyOfRange(ivSize, encBytes.size)
+                    val gcm = decryptAesGcm(cipherAndTag, iv, keyBytes)
+                    if (gcm != null) {
+                        return gcm
+                    }
+                }
+
+                if (encBytes.size > 16) {
+                    val iv = encBytes.copyOfRange(0, 16)
+                    val cipherBytes = encBytes.copyOfRange(16, encBytes.size)
+                    val cbc = decryptAesCbc(cipherBytes, iv, keyBytes)
+                    if (cbc != null) {
+                        return cbc
+                    }
+                }
+            }
+
+            val ivB64 = obj.get("iv")?.asString ?: obj.get("nonce")?.asString
+            val dataB64 = obj.get("ciphertext")?.asString ?: obj.get("data")?.asString
+            val tagB64 = obj.get("tag")?.asString
+            if (!ivB64.isNullOrBlank() && !dataB64.isNullOrBlank()) {
+                val iv = decodeBase64Bytes(ivB64) ?: return null
+                val cipherBytes = decodeBase64Bytes(dataB64) ?: return null
+                val cipherAndTag = if (!tagB64.isNullOrBlank()) {
+                    val tagBytes = decodeBase64Bytes(tagB64) ?: return null
+                    cipherBytes + tagBytes
+                } else {
+                    cipherBytes
+                }
+                val gcm = decryptAesGcm(cipherAndTag, iv, keyBytes)
+                if (gcm != null) {
+                    return gcm
+                }
+                if (tagB64.isNullOrBlank() && iv.size == 16) {
+                    val cbc = decryptAesCbc(cipherBytes, iv, keyBytes)
+                    if (cbc != null) {
+                        return cbc
+                    }
+                }
+            }
+
+            null
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Failed to decrypt encrypted payload", e)
+            null
+        }
+    }
+
+    private fun decryptAesGcm(cipherAndTag: ByteArray, iv: ByteArray, keyBytes: ByteArray): String? {
+        return try {
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            val spec = GCMParameterSpec(128, iv)
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), spec)
+            val plainBytes = cipher.doFinal(cipherAndTag)
+            plainBytes.toString(Charsets.UTF_8)
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "AES-GCM decrypt failed", e)
+            null
+        }
+    }
+
+    private fun decryptAesCbc(cipherBytes: ByteArray, iv: ByteArray, keyBytes: ByteArray): String? {
+        return try {
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+            val spec = IvParameterSpec(iv)
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(keyBytes, "AES"), spec)
+            val plainBytes = cipher.doFinal(cipherBytes)
+            plainBytes.toString(Charsets.UTF_8)
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "AES-CBC decrypt failed", e)
+            null
+        }
+    }
+
+    private fun decodeBase64Bytes(value: String?): ByteArray? {
+        if (value.isNullOrBlank()) return null
+        return try {
+            Base64.decode(value, Base64.DEFAULT)
+        } catch (e: Exception) {
+            try {
+                Base64.decode(value, Base64.NO_WRAP or Base64.URL_SAFE)
+            } catch (e2: Exception) {
+                null
+            }
+        }
+    }
+
+    /**
+     * Attempts to extract a plain payload from a JSON response.
+     */
+    private fun tryExtractPayloadFromJson(jsonText: String): String? {
+        val trimmed = jsonText.trimStart()
+        if (!trimmed.startsWith("{")) return null
+        return try {
+            val obj = JsonUtil.parseString(trimmed) ?: return null
+            val keys = listOf("payload", "configs", "data", "text", "content", "enc")
+            for (key in keys) {
+                val value = obj.get(key)?.asString
+                if (!value.isNullOrBlank()) {
+                    return value
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(AppConfig.TAG, "Failed to extract payload from JSON", e)
+            null
+        }
     }
 
     /**

@@ -1,0 +1,1 @@
+vless://654b6495-dcf1-c271-c7c5-fd967774d79a@nkriz.ir:8443?encryption=none&security=tls&type=tcp#client2

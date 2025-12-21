@@ -1,0 +1,13 @@
+{
+  "name": "config-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal config server that returns AES-256-GCM encrypted subscriptions.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

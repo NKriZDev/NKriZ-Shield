@@ -171,10 +171,8 @@ object SpeedtestManager {
         var content = HttpUtil.getUrlContent(AppConfig.IP_API_URL, 5000, httpPort) ?: return null
 
         var ipInfo = JsonUtil.fromJson(content, IPAPIInfo::class.java) ?: return null
-        var ip = ipInfo.ip ?: ipInfo.clientIp ?: ipInfo.ip_addr ?: ipInfo.query
-        var country = ipInfo.country_code ?: ipInfo.country ?: ipInfo.countryCode
-
-        return "(${country ?: "unknown"}) $ip"
+        var country = ipInfo.country_code ?: ipInfo.countryCode ?: ipInfo.country ?: "unknown"
+        return country.uppercase()
     }
 
     /**

@@ -11,4 +11,11 @@
 
     <color name="colorPrimary">#F5F5F5</color>
     <color name="colorAccent">#000000</color>
+
+    <color name="action_button_bg">#0F172A</color>
+    <color name="action_button_stroke">#38BDF8</color>
+    <color name="action_button_icon">#E0F2FE</color>
+    <color name="action_line_dim">#1E3A8A</color>
+    <color name="action_line_active">#38BDF8</color>
+    <color name="connect_button_bg">#07152E</color>
 </resources>
