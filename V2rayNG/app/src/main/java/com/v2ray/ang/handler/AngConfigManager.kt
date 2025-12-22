@@ -426,10 +426,8 @@ object AngConfigManager {
             Log.i(AppConfig.TAG, "Using hardcoded subscription: $SERVER_SUB_URL")
             val userAgent = it.second.userAgent
 
-            var configText = fetchSubscriptionContent(SERVER_SUB_URL, userAgent, SettingsManager.getHttpPort())
-            if (configText.isEmpty()) {
-                configText = fetchSubscriptionContent(SERVER_SUB_URL, userAgent, 0)
-            }
+            // Use direct connection (port 0) - no need to route through local proxy for config fetching
+            val configText = fetchSubscriptionContent(SERVER_SUB_URL, userAgent, 0)
             if (configText.isEmpty()) {
                 return 0
             }
@@ -547,7 +545,7 @@ object AngConfigManager {
 
     private fun fetchSubscriptionContent(url: String, userAgent: String?, httpPort: Int): String {
         try {
-            val conn = HttpUtil.createProxyConnection(url, httpPort, 15000, 15000, false) ?: return ""
+            val conn = HttpUtil.createProxyConnection(url, httpPort, 5000, 5000, false) ?: return ""
             val finalUserAgent = if (userAgent.isNullOrBlank()) {
                 "v2rayNG/${BuildConfig.VERSION_NAME}"
             } else {

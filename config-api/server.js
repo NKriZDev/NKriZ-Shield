@@ -10,6 +10,10 @@ const token = process.env.CONFIG_API_TOKEN || "";
 const keyB64 = process.env.CONFIG_ENC_KEY_B64 || "";
 const payloadPath = process.env.CONFIG_PAYLOAD_PATH || "configs.txt";
 
+// Cache for encrypted payload
+let cachedEncrypted = null;
+let cachedFileMtime = null;
+
 const resolvePayloadPath = () => {
   if (path.isAbsolute(payloadPath)) {
     return payloadPath;
@@ -49,8 +53,23 @@ app.get("/health", (req, res) => {
 app.get("/configs", requireAuth, async (req, res) => {
   try {
     const filePath = resolvePayloadPath();
+    const stats = await fs.stat(filePath);
+    
+    // Check if file has changed
+    if (cachedEncrypted && cachedFileMtime && stats.mtimeMs === cachedFileMtime) {
+      // Return cached version
+      res.json({ enc: cachedEncrypted, v: 1 });
+      return;
+    }
+    
+    // Read and encrypt
     const text = await fs.readFile(filePath, "utf8");
     const enc = encryptPayload(text);
+    
+    // Cache the result
+    cachedEncrypted = enc;
+    cachedFileMtime = stats.mtimeMs;
+    
     res.json({ enc, v: 1 });
   } catch (err) {
     console.error("Failed to serve configs", err);
