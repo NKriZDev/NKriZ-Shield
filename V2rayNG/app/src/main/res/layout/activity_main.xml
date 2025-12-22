@@ -122,15 +122,9 @@
                         android:layout_height="0dp"
                         android:layout_weight="1"
                         android:foregroundGravity="center"
-                        android:paddingBottom="@dimen/padding_spacing_dp8">
-
-                        <View
-                            android:id="@+id/cloud_glow"
-                            android:layout_width="@dimen/cloud_glow_size"
-                            android:layout_height="@dimen/cloud_glow_size"
-                            android:layout_gravity="center"
-                            android:background="@drawable/bg_cloud_glow"
-                            android:visibility="invisible" />
+                        android:paddingBottom="@dimen/padding_spacing_dp8"
+                        android:clipChildren="false"
+                        android:clipToPadding="false">
 
                         <LinearLayout
                             android:id="@+id/connect_block"
@@ -145,7 +139,17 @@
                             <FrameLayout
                                 android:id="@+id/flow_button_container"
                                 android:layout_width="@dimen/action_container_size"
-                                android:layout_height="@dimen/action_container_size">
+                                android:layout_height="@dimen/action_container_size"
+                                android:clipChildren="false"
+                                android:clipToPadding="false">
+
+                                <View
+                                    android:id="@+id/cloud_glow_flow"
+                                    android:layout_width="@dimen/cloud_glow_small_size"
+                                    android:layout_height="@dimen/cloud_glow_small_size"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/bg_cloud_glow_small"
+                                    android:visibility="invisible" />
 
                                 <com.google.android.material.progressindicator.CircularProgressIndicator
                                     android:id="@+id/progress_flow"
@@ -216,7 +220,17 @@
                             <FrameLayout
                                 android:id="@+id/update_button_container"
                                 android:layout_width="@dimen/action_container_size"
-                                android:layout_height="@dimen/action_container_size">
+                                android:layout_height="@dimen/action_container_size"
+                                android:clipChildren="false"
+                                android:clipToPadding="false">
+
+                                <View
+                                    android:id="@+id/cloud_glow_update"
+                                    android:layout_width="@dimen/cloud_glow_small_size"
+                                    android:layout_height="@dimen/cloud_glow_small_size"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/bg_cloud_glow_small"
+                                    android:visibility="invisible" />
 
                                 <com.google.android.material.progressindicator.CircularProgressIndicator
                                     android:id="@+id/progress_update"
@@ -287,7 +301,17 @@
                             <FrameLayout
                                 android:id="@+id/speedtest_button_container"
                                 android:layout_width="@dimen/action_container_size"
-                                android:layout_height="@dimen/action_container_size">
+                                android:layout_height="@dimen/action_container_size"
+                                android:clipChildren="false"
+                                android:clipToPadding="false">
+
+                                <View
+                                    android:id="@+id/cloud_glow_speedtest"
+                                    android:layout_width="@dimen/cloud_glow_small_size"
+                                    android:layout_height="@dimen/cloud_glow_small_size"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/bg_cloud_glow_small"
+                                    android:visibility="invisible" />
 
                                 <com.google.android.material.progressindicator.CircularProgressIndicator
                                     android:id="@+id/progress_speedtest"
@@ -359,7 +383,17 @@
                                 android:id="@+id/connect_button_container"
                                 android:layout_width="@dimen/connect_container_size"
                                 android:layout_height="@dimen/connect_container_size"
-                                android:layout_marginBottom="@dimen/padding_spacing_dp8">
+                                android:layout_marginBottom="@dimen/padding_spacing_dp8"
+                                android:clipChildren="false"
+                                android:clipToPadding="false">
+
+                                <View
+                                    android:id="@+id/cloud_glow"
+                                    android:layout_width="@dimen/cloud_glow_size"
+                                    android:layout_height="@dimen/cloud_glow_size"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/bg_cloud_glow"
+                                    android:visibility="invisible" />
 
                                 <com.google.android.material.progressindicator.CircularProgressIndicator
                                     android:id="@+id/progress_connect"
@@ -404,43 +438,60 @@
                                     app:strokeWidth="2dp" />
                             </FrameLayout>
 
-                            <com.google.android.material.card.MaterialCardView
-                                android:id="@+id/layout_test"
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/padding_spacing_dp4"
-                                android:padding="@dimen/padding_spacing_dp16"
-                                app:cardBackgroundColor="@color/action_button_bg"
-                                app:cardElevation="0dp"
-                                app:cardCornerRadius="12dp"
-                                app:strokeColor="@color/action_button_stroke"
-                                app:strokeWidth="1dp">
+                                android:layout_marginTop="@dimen/padding_spacing_dp12"
+                                android:gravity="center"
+                                android:orientation="horizontal"
+                                android:paddingStart="@dimen/padding_spacing_dp16"
+                                android:paddingEnd="@dimen/padding_spacing_dp16">
 
-                                <TextView
-                                    android:id="@+id/tv_test_state"
-                                    android:layout_width="wrap_content"
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/layout_test"
+                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                    android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:gravity="center"
-                                    android:maxLines="2"
-                                    android:minLines="1"
-                                    android:paddingStart="@dimen/padding_spacing_dp12"
-                                    android:paddingEnd="@dimen/padding_spacing_dp12"
-                                    android:text="@string/connection_test_pending"
-                                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                                    android:textColor="@color/action_button_icon" />
-                            </com.google.android.material.card.MaterialCardView>
+                                    android:layout_weight="1"
+                                    android:layout_marginEnd="@dimen/padding_spacing_dp8"
+                                    android:minHeight="@dimen/view_height_dp48"
+                                    android:minWidth="@dimen/view_height_dp48"
+                                    android:padding="0dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:insetLeft="0dp"
+                                    android:insetRight="0dp"
+                                    app:icon="@drawable/ic_speedtest_24dp"
+                                    app:iconGravity="textStart"
+                                    app:iconSize="24dp"
+                                    app:iconTint="@color/action_button_icon"
+                                    app:strokeColor="@color/action_button_stroke"
+                                    app:strokeWidth="1dp"
+                                    app:cornerRadius="12dp" />
 
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btn_select_next_server"
-                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="@dimen/padding_spacing_dp8"
-                                android:text="@string/title_select_next_server"
-                                android:textAllCaps="false"
-                                android:textColor="@color/action_button_icon"
-                                app:strokeColor="@color/action_button_stroke"
-                                app:strokeWidth="1dp" />
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_select_next_server"
+                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_marginStart="@dimen/padding_spacing_dp8"
+                                    android:minHeight="@dimen/view_height_dp48"
+                                    android:minWidth="@dimen/view_height_dp48"
+                                    android:padding="0dp"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:insetLeft="0dp"
+                                    android:insetRight="0dp"
+                                    app:icon="@drawable/ic_next_server_24dp"
+                                    app:iconGravity="textStart"
+                                    app:iconSize="24dp"
+                                    app:iconTint="@color/action_button_icon"
+                                    app:strokeColor="@color/action_button_stroke"
+                                    app:strokeWidth="1dp"
+                                    app:cornerRadius="12dp" />
+                            </LinearLayout>
+
                         </LinearLayout>
                     </FrameLayout>
                 </LinearLayout>

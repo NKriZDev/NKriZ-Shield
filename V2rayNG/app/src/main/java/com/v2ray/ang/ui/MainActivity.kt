@@ -13,6 +13,7 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
+import android.animation.ObjectAnimator
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,8 +42,14 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SpeedtestManager
 import com.v2ray.ang.helper.SimpleItemTouchHelperCallback
 import com.v2ray.ang.handler.V2RayServiceManager
+import com.v2ray.ang.handler.UpdateCheckerManager
 import com.v2ray.ang.util.Utils
 import com.v2ray.ang.viewmodel.MainViewModel
+import com.v2ray.ang.BuildConfig
+import com.v2ray.ang.databinding.DialogInfoPopupBinding
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -110,6 +117,10 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     private var flowAwaitingPing = false
     private var userDisconnectRequested = false
     private var suppressDisconnectReset = false
+    private var cloudGlowBreathingAnimator: ObjectAnimator? = null
+    private var cloudGlowFlowBreathingAnimator: ObjectAnimator? = null
+    private var cloudGlowUpdateBreathingAnimator: ObjectAnimator? = null
+    private var cloudGlowSpeedtestBreathingAnimator: ObjectAnimator? = null
 
     enum class Action {
         NONE,
@@ -147,10 +158,10 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         binding.btnOpenServerList.setOnClickListener { showServerList() }
         binding.btnCloseServerList.setOnClickListener { hideServerList() }
         binding.btnAdvancedSettingsMain.setOnClickListener { openDrawer() }
-        binding.btnReloadSubscription.setOnClickListener { importConfigViaSub() }
-        binding.btnTestAndSelectBest.setOnClickListener { testAndSelectBestServer() }
+        binding.btnReloadSubscription.setOnClickListener { showConfigInfoPopup() }
+        binding.btnTestAndSelectBest.setOnClickListener { showPingInfoPopup() }
         binding.btnSelectNextServer.setOnClickListener { selectNextServer() }
-        binding.btnFlowStart.setOnClickListener { startFlowSequence() }
+        binding.btnFlowStart.setOnClickListener { showVersionInfoPopup() }
 
         applyMainShortcutVisibility()
         binding.btnConnect.setOnLongClickListener {
@@ -165,10 +176,9 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         binding.btnConnect.setOnClickListener { handleConnectClick() }
         binding.layoutTest.setOnClickListener {
             if (mainViewModel.isRunning.value == true) {
-                setTestState(getString(R.string.connection_test_testing))
+                val testingText = getString(R.string.connection_test_testing)
+                setTestState(testingText)
                 mainViewModel.testCurrentServerRealPing()
-            } else {
-//                tv_test_state.text = getString(R.string.connection_test_fail)
             }
         }
 
@@ -431,6 +441,14 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
 
     public override fun onPause() {
         super.onPause()
+        // Stop all breathing animations when activity is paused
+        stopCloudGlowBreathing()
+        cloudGlowFlowBreathingAnimator?.cancel()
+        cloudGlowFlowBreathingAnimator = null
+        cloudGlowUpdateBreathingAnimator?.cancel()
+        cloudGlowUpdateBreathingAnimator = null
+        cloudGlowSpeedtestBreathingAnimator?.cancel()
+        cloudGlowSpeedtestBreathingAnimator = null
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -668,6 +686,8 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 if (count > 0) {
                     toast(getString(R.string.title_update_config_count, count))
                     mainViewModel.reloadServerList()
+                    // Save update timestamp
+                    MmkvManager.encodeSettings("pref_last_config_update_time", System.currentTimeMillis().toString())
                 } else {
                     toastError(R.string.toast_failure)
                 }
@@ -809,6 +829,8 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 if (count > 0) {
                     binding.ringFlowDone.visibility = View.VISIBLE
                     binding.ringUpdateDone.visibility = View.VISIBLE
+                    showCloudGlowSmall(binding.cloudGlowFlow)
+                    showCloudGlowSmall(binding.cloudGlowUpdate)
                     binding.lineUpdateSpeedtestActive.visibility = View.VISIBLE
                     mainViewModel.reloadServerList()
                     startSpeedtestFlow()
@@ -877,6 +899,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             withContext(Dispatchers.Main) {
                 binding.progressSpeedtest.visibility = View.INVISIBLE
                 binding.ringSpeedtestDone.visibility = View.VISIBLE
+                showCloudGlowSmall(binding.cloudGlowSpeedtest)
                 mainViewModel.sortCurrentGroupByTestResults()
                 mainViewModel.reloadServerList()
                 if (!connectTriggered) {
@@ -947,6 +970,9 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         binding.lineUpdateSpeedtestActive.visibility = View.INVISIBLE
         binding.lineSpeedtestConnectActive.visibility = View.INVISIBLE
         hideCloudGlow()
+        hideCloudGlowSmall(binding.cloudGlowFlow)
+        hideCloudGlowSmall(binding.cloudGlowUpdate)
+        hideCloudGlowSmall(binding.cloudGlowSpeedtest)
     }
 
     private fun clearFlowEffects() {
@@ -1052,10 +1078,8 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             } else {
                 ping
             }
-            binding.tvTestState.text = getString(R.string.connection_connected)
             showCloudGlow()
         } else {
-            binding.tvTestState.text = content
             if (mainViewModel.isRunning.value != true) {
                 binding.btnConnect.text = getString(R.string.action_connect)
                 hideCloudGlow()
@@ -1065,6 +1089,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
 
     private fun showCloudGlow() {
         binding.cloudGlow.animate().cancel()
+        stopCloudGlowBreathing()
         if (binding.cloudGlow.visibility != View.VISIBLE) {
             binding.cloudGlow.alpha = 0f
             binding.cloudGlow.visibility = View.VISIBLE
@@ -1072,13 +1097,101 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         binding.cloudGlow.animate()
             .alpha(1f)
             .setDuration(1800)
+            .withEndAction {
+                startCloudGlowBreathing(binding.cloudGlow)
+            }
             .start()
     }
 
     private fun hideCloudGlow() {
         binding.cloudGlow.animate().cancel()
-        binding.cloudGlow.alpha = 0f
-        binding.cloudGlow.visibility = View.INVISIBLE
+        stopCloudGlowBreathing()
+        if (binding.cloudGlow.visibility == View.VISIBLE) {
+            binding.cloudGlow.animate()
+                .alpha(0f)
+                .setDuration(1800)
+                .withEndAction {
+                    binding.cloudGlow.visibility = View.INVISIBLE
+                }
+                .start()
+        }
+    }
+
+    private fun showCloudGlowSmall(view: View) {
+        view.animate().cancel()
+        stopCloudGlowSmallBreathing(view)
+        if (view.visibility != View.VISIBLE) {
+            view.alpha = 0f
+            view.visibility = View.VISIBLE
+        }
+        view.animate()
+            .alpha(1f)
+            .setDuration(1800)
+            .withEndAction {
+                startCloudGlowSmallBreathing(view)
+            }
+            .start()
+    }
+
+    private fun hideCloudGlowSmall(view: View) {
+        view.animate().cancel()
+        stopCloudGlowSmallBreathing(view)
+        if (view.visibility == View.VISIBLE) {
+            view.animate()
+                .alpha(0f)
+                .setDuration(1800)
+                .withEndAction {
+                    view.visibility = View.INVISIBLE
+                }
+                .start()
+        }
+    }
+
+    private fun startCloudGlowBreathing(view: View) {
+        stopCloudGlowBreathing()
+        cloudGlowBreathingAnimator = ObjectAnimator.ofFloat(view, "alpha", 0.5f, 1.0f).apply {
+            duration = 2000
+            repeatCount = ObjectAnimator.INFINITE
+            repeatMode = ObjectAnimator.REVERSE
+            start()
+        }
+    }
+
+    private fun stopCloudGlowBreathing() {
+        cloudGlowBreathingAnimator?.cancel()
+        cloudGlowBreathingAnimator = null
+    }
+
+    private fun startCloudGlowSmallBreathing(view: View) {
+        stopCloudGlowSmallBreathing(view)
+        val animator = ObjectAnimator.ofFloat(view, "alpha", 0.5f, 1.0f).apply {
+            duration = 2000
+            repeatCount = ObjectAnimator.INFINITE
+            repeatMode = ObjectAnimator.REVERSE
+            start()
+        }
+        when (view.id) {
+            binding.cloudGlowFlow.id -> cloudGlowFlowBreathingAnimator = animator
+            binding.cloudGlowUpdate.id -> cloudGlowUpdateBreathingAnimator = animator
+            binding.cloudGlowSpeedtest.id -> cloudGlowSpeedtestBreathingAnimator = animator
+        }
+    }
+
+    private fun stopCloudGlowSmallBreathing(view: View) {
+        when (view.id) {
+            binding.cloudGlowFlow.id -> {
+                cloudGlowFlowBreathingAnimator?.cancel()
+                cloudGlowFlowBreathingAnimator = null
+            }
+            binding.cloudGlowUpdate.id -> {
+                cloudGlowUpdateBreathingAnimator?.cancel()
+                cloudGlowUpdateBreathingAnimator = null
+            }
+            binding.cloudGlowSpeedtest.id -> {
+                cloudGlowSpeedtestBreathingAnimator?.cancel()
+                cloudGlowSpeedtestBreathingAnimator = null
+            }
+        }
     }
 
 //    val mConnection = object : ServiceConnection {
@@ -1121,5 +1234,171 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
 
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun showConfigInfoPopup() {
+        val dialogBinding = DialogInfoPopupBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogBinding.root)
+            .create()
+        
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setDimAmount(0.5f)
+        
+        dialogBinding.tvPopupTitle.text = getString(R.string.title_sub_update)
+        
+        val configCount = mainViewModel.serversCache.size
+        val lastUpdateTime = MmkvManager.decodeSettingsString("pref_last_config_update_time", "")
+        
+        dialogBinding.layoutInfoItem1.isVisible = true
+        dialogBinding.tvInfoLabel1.text = getString(R.string.config_count)
+        dialogBinding.tvInfoValue1.text = configCount.toString()
+        
+        dialogBinding.layoutInfoItem2.isVisible = true
+        dialogBinding.tvInfoLabel2.text = getString(R.string.last_updated)
+        dialogBinding.tvInfoValue2.text = if (!lastUpdateTime.isNullOrEmpty()) {
+            try {
+                val timestamp = lastUpdateTime.toLong()
+                val dateFormat = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
+                dateFormat.format(Date(timestamp))
+            } catch (e: Exception) {
+                lastUpdateTime ?: getString(R.string.never)
+            }
+        } else {
+            getString(R.string.never)
+        }
+        
+        dialogBinding.btnCheckAgain.setOnClickListener {
+            dialog.dismiss()
+            lifecycleScope.launch(Dispatchers.IO) {
+                if (mainViewModel.subscriptionId.isNullOrBlank()) {
+                    mainViewModel.subscriptionIdChanged(AngConfigManager.SERVER_SUB_ID)
+                }
+                val count = mainViewModel.updateConfigViaSubAll()
+                delay(500L)
+                // Save update timestamp BEFORE showing popup
+                if (count > 0) {
+                    MmkvManager.encodeSettings("pref_last_config_update_time", System.currentTimeMillis().toString())
+                }
+                withContext(Dispatchers.Main) {
+                    if (count > 0) {
+                        toast(getString(R.string.title_update_config_count, count))
+                        mainViewModel.reloadServerList()
+                    } else {
+                        toastError(R.string.toast_failure)
+                    }
+                    // Show popup again after update
+                    delay(500)
+                    showConfigInfoPopup()
+                }
+            }
+        }
+        
+        dialog.show()
+    }
+
+    private fun showPingInfoPopup() {
+        val dialogBinding = DialogInfoPopupBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogBinding.root)
+            .create()
+        
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setDimAmount(0.5f)
+        
+        dialogBinding.tvPopupTitle.text = getString(R.string.title_real_ping_all_server)
+        
+        val servers = mainViewModel.serversCache.toList()
+        val pingResults = servers.mapNotNull { server ->
+            MmkvManager.decodeServerAffiliationInfo(server.guid)?.testDelayMillis?.takeIf { it > 0 }
+        }
+        
+        dialogBinding.layoutInfoItem1.isVisible = true
+        dialogBinding.tvInfoLabel1.text = getString(R.string.best_ping)
+        dialogBinding.tvInfoValue1.text = if (pingResults.isNotEmpty()) {
+            "${pingResults.minOrNull()}ms"
+        } else {
+            "N/A"
+        }
+        
+        dialogBinding.layoutInfoItem2.isVisible = true
+        dialogBinding.tvInfoLabel2.text = getString(R.string.average_ping)
+        dialogBinding.tvInfoValue2.text = if (pingResults.isNotEmpty()) {
+            "${pingResults.average().toLong()}ms"
+        } else {
+            "N/A"
+        }
+        
+        dialogBinding.btnCheckAgain.setOnClickListener {
+            dialog.dismiss()
+            testAndSelectBestServer()
+            // Show popup again after test
+            lifecycleScope.launch {
+                delay(2000)
+                showPingInfoPopup()
+            }
+        }
+        
+        dialog.show()
+    }
+
+    private fun showVersionInfoPopup() {
+        val dialogBinding = DialogInfoPopupBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogBinding.root)
+            .create()
+        
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setDimAmount(0.5f)
+        
+        dialogBinding.tvPopupTitle.text = getString(R.string.update_check_for_update)
+        
+        dialogBinding.layoutInfoItem1.isVisible = true
+        dialogBinding.tvInfoLabel1.text = getString(R.string.current_version)
+        dialogBinding.tvInfoValue1.text = BuildConfig.VERSION_NAME
+        
+        dialogBinding.layoutInfoItem2.isVisible = true
+        dialogBinding.tvInfoLabel2.text = getString(R.string.latest_version)
+        dialogBinding.tvInfoValue2.text = getString(R.string.checking)
+        
+        dialogBinding.btnCheckAgain.setOnClickListener {
+            dialogBinding.tvInfoValue2.text = getString(R.string.checking)
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val result = UpdateCheckerManager.checkForUpdate(false)
+                    withContext(Dispatchers.Main) {
+                        dialogBinding.tvInfoValue2.text = if (result.hasUpdate) {
+                            result.latestVersion
+                        } else {
+                            "${BuildConfig.VERSION_NAME} (latest)"
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        dialogBinding.tvInfoValue2.text = "Error"
+                    }
+                }
+            }
+        }
+        
+        // Check on open
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val result = UpdateCheckerManager.checkForUpdate(false)
+                withContext(Dispatchers.Main) {
+                    dialogBinding.tvInfoValue2.text = if (result.hasUpdate) {
+                        result.latestVersion
+                    } else {
+                        "${BuildConfig.VERSION_NAME} (latest)"
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    dialogBinding.tvInfoValue2.text = "Error"
+                }
+            }
+        }
+        
+        dialog.show()
     }
 }

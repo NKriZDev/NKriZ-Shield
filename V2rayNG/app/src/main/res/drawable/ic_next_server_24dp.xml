@@ -1,0 +1,41 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <group android:strokeWidth="2.5">
+        <!-- Server stack - top -->
+        <path
+            android:pathData="M10,10 L28,10 A3,3 0,0 1,31,13 L31,20 A3,3 0,0 1,28,23 L10,23 A3,3 0,0 1,7,20 L7,13 A3,3 0,0 1,10,10 Z"
+            android:strokeColor="@android:color/white"
+            android:fillColor="@android:color/transparent" />
+        <!-- Server stack - bottom -->
+        <path
+            android:pathData="M10,24 L28,24 A3,3 0,0 1,31,27 L31,34 A3,3 0,0 1,28,37 L10,37 A3,3 0,0 1,7,34 L7,27 A3,3 0,0 1,10,24 Z"
+            android:strokeColor="@android:color/white"
+            android:fillColor="@android:color/transparent" />
+        <!-- Server lines -->
+        <path
+            android:pathData="M17.5,15 L25,15"
+            android:strokeColor="@android:color/white" />
+        <path
+            android:pathData="M17.5,29 L25,29"
+            android:strokeColor="@android:color/white" />
+        <!-- "Next" arrow -->
+        <path
+            android:pathData="M30,24 L38,24"
+            android:strokeColor="@android:color/white" />
+        <path
+            android:pathData="M35,19 L40,24 L35,29"
+            android:strokeColor="@android:color/white"
+            android:fillColor="@android:color/transparent" />
+    </group>
+    <!-- Server status dots -->
+    <path
+        android:pathData="M14,15 A1.4,1.4 0,0 1,15.4,15 A1.4,1.4 0,0 1,14,15 Z"
+        android:fillColor="@android:color/white" />
+    <path
+        android:pathData="M14,29 A1.4,1.4 0,0 1,15.4,29 A1.4,1.4 0,0 1,14,29 Z"
+        android:fillColor="@android:color/white" />
+</vector>
+

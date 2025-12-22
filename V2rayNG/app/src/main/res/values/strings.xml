@@ -2,6 +2,15 @@
 <resources>
     <string name="app_name" translatable="false">NKriZ Vanguard</string>
     <string name="app_name_launcher" translatable="false">Vanguard</string>
+    <string name="check_again">Check Again</string>
+    <string name="config_count">Number of configs</string>
+    <string name="last_updated">Last updated</string>
+    <string name="best_ping">Best ping</string>
+    <string name="average_ping">Average ping</string>
+    <string name="current_version">Current version</string>
+    <string name="latest_version">Latest version</string>
+    <string name="checking">Checking…</string>
+    <string name="never">Never</string>
     <string name="app_widget_name">Switch</string>
     <string name="app_tile_name">Switch</string>
     <string name="app_tile_first_use">First use of this feature, please use the app to add server</string>

@@ -17,30 +17,60 @@ import java.io.FileOutputStream
 
 object UpdateCheckerManager {
     suspend fun checkForUpdate(includePreRelease: Boolean = false): CheckUpdateResult = withContext(Dispatchers.IO) {
-            val url = if (includePreRelease) {
-                AppConfig.APP_API_URL
-            } else {
-                AppConfig.APP_API_URL.concatUrl("latest")
+            // First, try to get version from VERSION file (only first line is the app version)
+            var latestVersion: String? = null
+            try {
+                val versionResponse = HttpUtil.getUrlContent(AppConfig.APP_VERSION_URL, 5000)
+                if (!versionResponse.isNullOrEmpty()) {
+                    // Only use the first line as the app version
+                    latestVersion = versionResponse.lines().firstOrNull()?.trim()
+                    Log.i(AppConfig.TAG, "Found version from VERSION file: $latestVersion")
+                }
+            } catch (e: Exception) {
+                Log.w(AppConfig.TAG, "Failed to get version from VERSION file, trying releases API", e)
             }
 
-            var response = HttpUtil.getUrlContent(url, 5000)
-            if (response.isNullOrEmpty()) {
-                val httpPort = SettingsManager.getHttpPort()
-                response = HttpUtil.getUrlContent(url, 5000, httpPort) ?: throw IllegalStateException("Failed to get response")
+            // If VERSION file failed, fall back to GitHub Releases API
+            if (latestVersion.isNullOrEmpty()) {
+                val url = if (includePreRelease) {
+                    AppConfig.APP_API_URL
+                } else {
+                    AppConfig.APP_API_URL.concatUrl("latest")
+                }
+
+                var response = HttpUtil.getUrlContent(url, 5000)
+                if (response.isNullOrEmpty()) {
+                    val httpPort = SettingsManager.getHttpPort()
+                    response = HttpUtil.getUrlContent(url, 5000, httpPort) ?: throw IllegalStateException("Failed to get response")
+                }
+
+                val latestRelease = if (includePreRelease) {
+                    JsonUtil.fromJson(response, Array<GitHubRelease>::class.java)
+                        .firstOrNull()
+                        ?: throw IllegalStateException("No pre-release found")
+                } else {
+                    JsonUtil.fromJson(response, GitHubRelease::class.java)
+                }
+
+                latestVersion = latestRelease.tagName.removePrefix("v")
+                Log.i(AppConfig.TAG, "Found version from releases API: $latestVersion")
             }
 
-            val latestRelease = if (includePreRelease) {
-                JsonUtil.fromJson(response, Array<GitHubRelease>::class.java)
-                    .firstOrNull()
-                    ?: throw IllegalStateException("No pre-release found")
-            } else {
-                JsonUtil.fromJson(response, GitHubRelease::class.java)
+            if (latestVersion.isNullOrEmpty()) {
+                throw IllegalStateException("Failed to get latest version")
             }
 
-            val latestVersion = latestRelease.tagName.removePrefix("v")
-            Log.i(AppConfig.TAG, "Found new version: $latestVersion (current: ${BuildConfig.VERSION_NAME})")
+            Log.i(AppConfig.TAG, "Latest version: $latestVersion (current: ${BuildConfig.VERSION_NAME})")
 
             return@withContext if (compareVersions(latestVersion, BuildConfig.VERSION_NAME) > 0) {
+                // Get download URL from latest release
+                val url = AppConfig.APP_API_URL.concatUrl("latest")
+                var response = HttpUtil.getUrlContent(url, 5000)
+                if (response.isNullOrEmpty()) {
+                    val httpPort = SettingsManager.getHttpPort()
+                    response = HttpUtil.getUrlContent(url, 5000, httpPort) ?: throw IllegalStateException("Failed to get release info")
+                }
+                val latestRelease = JsonUtil.fromJson(response, GitHubRelease::class.java)
                 val downloadUrl = getDownloadUrl(latestRelease, Build.SUPPORTED_ABIS[0])
                 CheckUpdateResult(
                     hasUpdate = true,

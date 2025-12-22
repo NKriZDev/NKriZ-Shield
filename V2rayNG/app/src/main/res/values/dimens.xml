@@ -27,4 +27,6 @@
     <dimen name="connect_progress_thickness">48dp</dimen>
     <dimen name="cloud_glow_size">420dp</dimen>
     <dimen name="cloud_glow_radius">210dp</dimen>
+    <dimen name="cloud_glow_small_size">140dp</dimen>
+    <dimen name="cloud_glow_small_radius">70dp</dimen>
 </resources>

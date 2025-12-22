@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <group android:strokeWidth="2.5">
+        <!-- Speedometer arc -->
+        <path
+            android:pathData="M8,30a16,16 0,0 1,32 0"
+            android:strokeColor="@android:color/white"
+            android:fillColor="@android:color/transparent" />
+        <!-- Needle -->
+        <path
+            android:pathData="M24,30 L34,18"
+            android:strokeColor="@android:color/white" />
+    </group>
+    <!-- Center dot -->
+    <path
+        android:pathData="M24,30 A2.5,2.5 0,0 1,26.5,30 A2.5,2.5 0,0 1,24,30 Z"
+        android:fillColor="@android:color/white" />
+</vector>
+
